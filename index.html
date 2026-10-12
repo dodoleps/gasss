@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gasss</title>
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141816" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Gasss">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Layar login -->
+  <section id="login-screen" class="pin-screen" hidden>
+    <div class="pin-box">
+      <img src="icons/icon-192.png" alt="" class="pin-logo">
+      <h1>Gasss</h1>
+      <p>Cukup ngomong, tujuan tercapai</p>
+      <button class="google-btn" id="btn-login">
+        <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.7 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.2-13.5-9.9l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+        Masuk dengan Google
+      </button>
+      <p class="pin-error" id="login-error"></p>
+      <p class="login-note">Data keuangan Anda tersimpan di HP ini saja.
+        Login hanya dipakai untuk fitur AI suara. Simpan cadangan secara berkala dari menu Atur.
+        <br><a href="privasi.html">Kebijakan Privasi</a></p>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <header class="hero">
+      <div class="hero-top">
+        <div class="hello" id="hello">Halo 👋</div>
+        <button class="icon-btn" id="btn-refresh" aria-label="Muat ulang">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+        </button>
+      </div>
+      <div class="hero-label">Total semua dompet</div>
+      <div class="hero-total" id="total-saldo">Rp0</div>
+    </header>
+    <div class="demo-banner" id="demo-banner" hidden>Mode demo: catat lewat ketik, AI suara belum aktif.</div>
+    <div class="backup-banner" id="backup-banner" hidden></div>
+
+    <main>
+      <!-- BERANDA -->
+      <section class="view" id="view-home">
+        <div id="goal-area"></div>
+        <div class="duo" id="goal-duo"></div>
+        <div class="say" id="gasss-say" hidden></div>
+        <div class="section-head">
+          <h2>Dompet</h2>
+          <button class="link-btn" id="btn-split">Bagi uang</button>
+        </div>
+        <div class="wallet-grid" id="wallet-grid"></div>
+        <div class="section-head" id="recent-head" hidden>
+          <h2>Baru dicatat</h2>
+        </div>
+        <div class="recent" id="recent"></div>
+        <div class="hint" id="home-hint">
+          Tekan tombol mikrofon lalu bicara, misalnya:<br>
+          <em>“makan siang 25 ribu, parkir 2 ribu, ambil dari dompet uang makan”</em><br>
+          <em>“gajian 8 juta”</em> · <em>“nabung 500 ribu ke tujuan”</em>
+        </div>
+      </section>
+
+      <!-- RIWAYAT -->
+      <section class="view" id="view-history" hidden>
+        <div class="filters">
+          <input type="search" id="f-search" placeholder="Cari keterangan…" autocomplete="off">
+          <div class="filter-row">
+            <select id="f-month"></select>
+            <select id="f-wallet"></select>
+            <select id="f-cat"></select>
+          </div>
+        </div>
+        <div id="history-list"></div>
+        <button class="fab-secondary" id="btn-add-manual">+ Tambah manual</button>
+      </section>
+
+      <!-- LAPORAN -->
+      <section class="view" id="view-report" hidden>
+        <div class="report-month">
+          <button class="icon-btn" id="r-prev" aria-label="Bulan sebelumnya">‹</button>
+          <strong id="r-month"></strong>
+          <button class="icon-btn" id="r-next" aria-label="Bulan berikutnya">›</button>
+        </div>
+        <div class="month-strip" id="r-summary"></div>
+        <button class="share-cta" id="btn-share-recap">📸 Bagikan rekap bulan ini <small>ke story</small></button>
+        <button class="share-cta" id="btn-share-hemat" hidden>🏆 Bagikan pencapaian hemat <small>ke story</small></button>
+        <h2>Posisi kas</h2>
+        <div class="cash-card">
+          <div class="cash-head" id="r-cash-head"></div>
+          <div class="cash-chart" id="r-cash"></div>
+          <div class="cash-tip" id="r-cash-tip" hidden></div>
+          <p class="cash-note">Persen uang bulan ini yang masih tersisa: saldo semua dompet ÷ (saldo awal bulan + pemasukan bulan ini).</p>
+        </div>
+        <div class="section-head"><h2>Dibanding bulan sebelumnya</h2>
+          <div class="seg seg-sm" id="cmp-seg"><button data-n="1">1 bln</button><button data-n="2">2 bln</button><button data-n="3">3 bln</button></div></div>
+        <div class="cmp-card" id="r-compare"></div>
+        <h2>Pengeluaran per kategori</h2>
+        <div id="r-cats"></div>
+        <h2>Unduh laporan bulan ini</h2>
+        <div class="export-row">
+          <button class="btn" id="btn-report-pdf">📄 PDF</button>
+          <button class="btn" id="btn-report-xlsx">📊 Excel</button>
+        </div>
+      </section>
+
+      <!-- PENGATURAN -->
+      <section class="view" id="view-settings" hidden>
+        <div class="section-head"><h2>Dompet</h2><button class="link-btn" id="btn-add-wallet">+ Dompet</button></div>
+        <div class="list" id="s-wallets"></div>
+        <div class="section-head"><h2>Kategori pengeluaran</h2><button class="link-btn" data-add-cat="keluar">+ Kategori</button></div>
+        <div class="list" id="s-cats-keluar"></div>
+        <div class="section-head"><h2>Kategori pemasukan</h2><button class="link-btn" data-add-cat="masuk">+ Kategori</button></div>
+        <div class="list" id="s-cats-masuk"></div>
+        <h2>Data & cadangan</h2>
+        <div class="list">
+          <div class="list-item" id="s-data-info"></div>
+          <button class="list-item" id="btn-backup"><span>💾 Simpan cadangan ke file Excel</span><small>›</small></button>
+          <button class="list-item" id="btn-sheets-backup" hidden><span>🟩 Cadangkan ke Google Sheets</span><small>›</small></button>
+          <button class="list-item" id="btn-restore"><span>♻️ Pulihkan dari file Excel</span><small>›</small></button>
+          <button class="list-item" id="btn-sheets-restore" hidden><span>♻️ Pulihkan dari Google Sheets</span><small>›</small></button>
+          <button class="list-item" id="btn-migrate" hidden><span>📥 Pindahkan data dari Google Sheets</span><small>›</small></button>
+          <button class="list-item" id="btn-reset" hidden><span>🧹 Mulai pencatatan baru <small>(setelah cadangan)</small></span><small>›</small></button>
+        </div>
+        <input type="file" id="restore-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+        <h2>Aplikasi</h2>
+        <div class="list">
+          <div class="list-item"><span id="s-conn"></span></div>
+          <div class="list-item" id="s-timing" hidden></div>
+          <div class="list-item" id="s-account" hidden></div>
+          <button class="list-item" id="btn-tutorial"><span>🎓 Lihat tutorial lagi</span><small>›</small></button>
+          <button class="list-item" id="btn-feedback" hidden><span>💬 Kirim masukan</span><small>›</small></button>
+          <button class="list-item" id="btn-stats" hidden><span>📈 Statistik pemakaian <small>(pemilik)</small></span><small>›</small></button>
+          <a class="list-item" href="privasi.html"><span>🔒 Kebijakan Privasi</span><small>›</small></a>
+          <button class="list-item danger-text" id="btn-logout" hidden>Keluar dari akun</button>
+          <button class="list-item danger-text" id="btn-reset-data">Hapus semua data di HP ini</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Tombol suara -->
+    <div class="voice-bar" id="voice-bar">
+      <button class="kbd-btn" id="btn-type" aria-label="Ketik">⌨</button>
+      <button class="mic-btn" id="btn-mic" aria-label="Rekam suara">
+        <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+      </button>
+      <span class="voice-status" id="voice-status"></span>
+    </div>
+
+    <nav class="tabbar">
+      <button data-tab="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Beranda</button>
+      <button data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Riwayat</button>
+      <button data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Laporan</button>
+      <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Atur</button>
+    </nav>
+  </div>
+
+  <!-- Tutorial singkat -->
+  <div class="tutorial" id="tutorial" hidden role="dialog" aria-modal="true" aria-label="Tutorial">
+    <div class="tut-card">
+      <button class="tut-skip" id="tut-skip">Lewati</button>
+      <div class="tut-icon"></div>
+      <h3 class="tut-title"></h3>
+      <p class="tut-text"></p>
+      <div class="tut-dots"></div>
+      <div class="btn-row"><button class="btn" id="tut-back">Kembali</button><button class="btn primary" id="tut-next">Lanjut</button></div>
+    </div>
+  </div>
+
+  <!-- Lembar bawah (modal) serbaguna -->
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" id="sheet"></div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="config.js"></script>
+  <script src="logic.js"></script>
+  <script src="store.js"></script>
+  <script src="export.js"></script>
+  <script src="gsheets.js"></script>
+  <script src="share.js"></script>
+  <script src="recorder.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
