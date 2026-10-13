@@ -11,7 +11,7 @@
   const TX_COLS = ['id', 'tanggal', 'jenis', 'nominal', 'kategori', 'dompet_id', 'dompet_tujuan_id',
     'keterangan', 'sumber', 'transkrip', 'dibuat'];
   const WALLET_COLS = ['id', 'nama', 'urutan', 'arsip', 'dibuat', 'warna', 'tujuan'];
-  const GOAL_COLS = ['id', 'nama', 'emoji', 'target', 'tenggat', 'mulai', 'awal', 'dompet_id', 'status', 'rincian', 'catatan', 'dibuat', 'tercapai'];
+  const GOAL_COLS = ['id', 'nama', 'emoji', 'tema', 'target', 'tenggat', 'mulai', 'awal', 'dompet_id', 'status', 'rincian', 'catatan', 'dibuat', 'tercapai'];
   const CAT_COLS = ['nama', 'jenis'];
   const TABS = ['Transaksi', 'Dompet', 'Kategori', 'Tujuan', 'Info'];
 

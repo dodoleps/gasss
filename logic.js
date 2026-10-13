@@ -546,6 +546,28 @@
     return y + '-' + String(idx + 1).padStart(2, '0') + '-01';
   }
 
+  /** Tema ilustrasi kartu tujuan. Kunci sama dengan template; "umum" untuk tujuan lainnya. */
+  const THEMES = [
+    { key: 'race', label: 'Lintasan lari', emoji: '🏃' },
+    { key: 'liburan', label: 'Rute pesawat', emoji: '✈️' },
+    { key: 'gadget', label: 'Baterai terisi', emoji: '🔋' },
+    { key: 'darurat', label: 'Perisai', emoji: '🛡️' },
+    { key: 'nikah', label: 'Jalan ke pelaminan', emoji: '💒' },
+    { key: 'kendaraan', label: 'Jalan ke dealer', emoji: '🏍️' },
+    { key: 'umum', label: 'Mendaki gunung', emoji: '⛰️' },
+  ];
+  const THEME_EMOJI = { race: /🏃|🏁|🎽|👟|🚴|🏊|🎤|🎫/u, liburan: /✈️|🏖️|🏝️|🧳|🗺️|🌴/u, gadget: /📱|💻|📷|🎮|⌚|🎧|🖥️/u,
+    darurat: /🛟|🛡️|🚑|☔/u, nikah: /💍|💒|👰|🤵|💐/u, kendaraan: /🏍️|🚗|🛵|🚙|🚲|🚘/u };
+  /** Tebak tema dari teks (nama/cerita) lalu emoji. Hasil salah satu kunci THEMES. */
+  function guessTheme(text, emoji) {
+    const s = String(text || '').toLowerCase();
+    const t = GOAL_TEMPLATES.find((x) => x.re.test(s));
+    if (t) return t.key;
+    const e = Object.keys(THEME_EMOJI).find((k) => THEME_EMOJI[k].test(String(emoji || '')));
+    return e || 'umum';
+  }
+  const validTheme = (k) => THEMES.some((t) => t.key === k);
+
   /** Rencana tujuan sederhana untuk MODE DEMO (tanpa AI): tebak template dari kata kunci. */
   function planDemo(text, today) {
     const s = String(text || '').toLowerCase();
@@ -562,7 +584,7 @@
       const d = new Date(y, m - 1 + tpl.bulan, 1);
       tenggat = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
     }
-    return cleanPlan({ nama, emoji: tpl.emoji, tenggat, rincian,
+    return cleanPlan({ nama, emoji: tpl.emoji, tenggat, rincian, tema: tpl.key || 'umum',
       catatan: 'Mode demo: angka di atas perkiraan kasar. Koreksi sesuai kebutuhanmu ya.' }, today);
   }
 
@@ -579,12 +601,14 @@
       tenggat = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
     }
     const emoji = Array.from(String(p.emoji || '').trim()).slice(0, 4).join('') || '🎯';
-    return { nama: String(p.nama || '').trim().slice(0, 60) || 'Tujuanku', emoji, tenggat, rincian,
+    const nama = String(p.nama || '').trim().slice(0, 60) || 'Tujuanku';
+    const tema = validTheme(p.tema) ? p.tema : guessTheme(nama + ' ' + (p.transkrip || ''), emoji);
+    return { nama, emoji, tema, tenggat, rincian,
       target: sum || Math.max(0, Math.round(Number(p.target)) || 0), catatan: String(p.catatan || '').slice(0, 300),
       transkrip: String(p.transkrip || '').slice(0, 500) };
   }
 
-  const api = { GOAL_TEMPLATES, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
+  const api = { GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
     daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -406,26 +406,14 @@
     const g = activeGoal();
     const jatah = safeDaily();
     if (!g) {
+      S.scene = null;
       const ide = S.goals.filter((x) => x.status === 'ide').length;
       $('goal-area').innerHTML = '<div class="goal-empty"><div class="goal-empty-top"><span class="goal-emoji">🎯</span><span><b>Mau nabung buat apa?</b><br>' +
         '<small>Satu tujuan + tenggat bikin nabung lebih semangat. Ceritakan saja, AI bikinin rincian biayanya.</small></span></div>' +
         '<button class="btn primary" data-goal-new>Buat tujuan</button>' +
         (ide ? '<button class="link-btn" data-goal-ideas>Lihat ' + ide + ' ide tujuan</button>' : '') + '</div>';
     } else {
-      const p = goalProg(g);
-      const st = STATUS[p.status];
-      const telat = p.perkiraan && p.perkiraan > g.tenggat && p.status !== 'tercapai';
-      $('goal-area').innerHTML = '<button class="goal-card st-' + p.status + '" data-goal-open>' +
-        '<div class="goal-top"><span class="goal-emoji">' + esc(g.emoji) + '</span><span class="goal-head"><span class="goal-label">Tujuan aktif</span>' +
-        '<span class="goal-name">' + esc(g.nama) + '</span></span><span class="goal-chip">' + st.icon + ' ' + st.label + '</span></div>' +
-        '<div class="goal-amount"><b>' + rp(p.terkumpul) + '</b><span>dari ' + rp(p.target) + '</span><em>' + Math.round(p.persen * 100) + '%</em></div>' +
-        '<div class="goal-bar" role="img" aria-label="Terkumpul ' + Math.round(p.persen * 100) + '%, seharusnya ' + Math.round(p.persenSeharusnya * 100) + '%">' +
-        '<i style="width:' + pctW(p.persen) + '"></i>' +
-        (p.status !== 'tercapai' ? '<b class="goal-mark" style="left:' + pctW(p.persenSeharusnya) + '"></b>' : '') + '</div>' +
-        (p.status !== 'tercapai' ? '<div class="goal-legend"><span><i class="lg-fill"></i>terkumpul</span><span><i class="lg-mark"></i>seharusnya sudah ' + rpShort(p.seharusnya) + '</span></div>' : '') +
-        '<div class="goal-foot"><span>⏳ ' + fmtDate(g.tenggat) + ' · ' + sisaHariText(p.sisaHari) + '</span>' +
-        '<span class="' + (telat ? 'c-warn' : '') + '">' + (p.status === 'tercapai' ? '🎉 Selamat!' : p.perkiraan ? '🏁 Perkiraan ' + fmtMonthShort(p.perkiraan) : '🏁 Mulai sisihkan dulu') + '</span></div>' +
-        '</button>';
+      renderGoalCard(g);
     }
 
     let html = '';
@@ -448,6 +436,113 @@
     $('goal-duo').innerHTML = html;
     $('goal-duo').classList.toggle('single', html.indexOf('mini-save') < 0);
     renderSay(jatah);
+  }
+
+  /** Checkpoint ilustrasi = rincian biaya kumulatif (bagian dari target). */
+  function goalCheckpoints(g) {
+    const sum = (g.rincian || []).reduce((t, x) => t + x.nominal, 0);
+    const base = Math.max(Number(g.target) || 0, sum) || 1;
+    let acc = 0;
+    return (g.rincian || []).map((x) => { const from = acc / base; acc += x.nominal; return { nama: x.nama, from, f: Math.min(1, acc / base) }; });
+  }
+
+  /**
+   * Kartu tujuan bergambar (tema sesuai jenis tujuan, lihat scenes.js). Adegan hanya dibangun ulang kalau tujuan/tema/rincian
+   * berubah; selain itu penjalan bergerak halus dari posisi lama ke posisi baru.
+   */
+  function renderGoalCard(g) {
+    const p = goalProg(g);
+    const st = STATUS[p.status];
+    const telat = p.perkiraan && p.perkiraan > g.tenggat && p.status !== 'tercapai';
+    const tema = g.tema || L.guessTheme(g.nama, g.emoji);
+    const cps = goalCheckpoints(g);
+    const sig = JSON.stringify([g.id, tema, cps, Math.round(p.persenSeharusnya * 200)]);
+    const area = $('goal-area');
+    let sc = S.scene;
+    if (!sc || sc.sig !== sig || !area.querySelector('.goal-scene')) {
+      area.innerHTML = '<button class="goal-card" data-goal-open><div class="goal-top"></div>' +
+        '<div class="goal-scene"><svg viewBox="0 0 340 210" role="img"></svg></div>' +
+        '<div class="goal-amount"></div><div class="goal-cps">' + cps.map(() => '<span></span>').join('') + '</div><div class="goal-foot"></div></button>';
+      const svg = area.querySelector('svg');
+      const same = sc && sc.goalId === g.id;
+      const shown = same ? sc.shown : 0;
+      sc = S.scene = { sig, goalId: g.id, nama: g.nama, svg, cps, shown, target: shown, dir: 1, raf: 0, quiet: !same, msgs: [],
+        api: window.HBScenes.mount(svg, { tema, checkpoints: cps, seharusnya: p.persenSeharusnya }) };
+      drawScene(sc);
+    }
+    const card = area.querySelector('.goal-card');
+    card.className = 'goal-card st-' + p.status;
+    card.querySelector('.goal-top').innerHTML = '<span class="goal-emoji">' + esc(g.emoji) + '</span><span class="goal-head"><span class="goal-label">Tujuan aktif</span>' +
+      '<span class="goal-name">' + esc(g.nama) + '</span></span><span class="goal-chip">' + st.icon + ' ' + st.label + '</span>';
+    sc.svg.setAttribute('aria-label', 'Terkumpul ' + Math.round(p.persen * 100) + '%, seharusnya ' + Math.round(p.persenSeharusnya * 100) + '%');
+    card.querySelector('.goal-amount').innerHTML = '<b>' + rp(p.terkumpul) + '</b><span>dari ' + rp(p.target) + '</span><em>' + Math.round(p.persen * 100) + '%</em>';
+    card.querySelector('.goal-foot').innerHTML = '<span>⏳ ' + fmtDate(g.tenggat) + ' · ' + sisaHariText(p.sisaHari) + '</span>' +
+      '<span class="' + (telat ? 'c-warn' : '') + '">' + (p.status === 'tercapai' ? '🎉 Selamat!' : p.perkiraan ? '🏁 Perkiraan ' + fmtMonthShort(p.perkiraan) : '🏁 Mulai sisihkan dulu') + '</span>' +
+      (p.status !== 'tercapai' ? '<span class="goal-ghost">Bayangan samar = posisi seharusnya (' + rpShort(p.seharusnya) + ')</span>' : '');
+    animateScene(p.status === 'tercapai' ? 1 : p.persen);
+  }
+
+  function drawScene(sc) {
+    sc.api.draw(sc.shown, sc.dir);
+    const chips = $('goal-area').querySelectorAll('.goal-cps span');
+    sc.cps.forEach((c, i) => {
+      const inside = Math.max(0, Math.min(1, (sc.shown - c.from) / Math.max(1e-6, c.f - c.from)));
+      const ok = inside >= 1 - 1e-6;
+      if (!chips[i]) return;
+      chips[i].className = ok ? 'ok' : inside > 0 ? 'now' : '';
+      chips[i].textContent = (ok ? '✅ ' : inside > 0 ? '⏳ ' : '') + c.nama + (!ok && inside > 0 ? ' ' + Math.round(inside * 100) + '%' : '');
+    });
+  }
+
+  /** Gerakkan ilustrasi ke progres baru; rayakan checkpoint yang terlewati (kecuali saat pembukaan). */
+  function animateScene(to) {
+    const sc = S.scene;
+    if (!sc) return;
+    sc.target = Math.max(0, Math.min(1, to));
+    if (Math.abs(sc.target - sc.shown) < 1e-4) { drawScene(sc); return; }
+    sc.dir = sc.target >= sc.shown ? 1 : -1;
+    cancelAnimationFrame(sc.raf);
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const step = () => {
+      if (S.scene !== sc) return;
+      const prev = sc.shown, diff = sc.target - sc.shown;
+      if (reduce || Math.abs(diff) < 0.0015) sc.shown = sc.target;
+      else {
+        sc.shown += Math.sign(diff) * Math.max(0.0018, Math.abs(diff) * 0.06);
+        if ((diff > 0 && sc.shown > sc.target) || (diff < 0 && sc.shown < sc.target)) sc.shown = sc.target;
+      }
+      drawScene(sc);
+      if (!sc.quiet) celebrateCrossing(sc, prev, sc.shown);
+      if (sc.shown !== sc.target) sc.raf = requestAnimationFrame(step);
+      else sc.quiet = false;
+    };
+    sc.raf = requestAnimationFrame(step);
+  }
+
+  function celebrateCrossing(sc, prev, p) {
+    if (p <= prev) return;
+    const at = (f) => window.HBScenes.toScreen(sc.svg, sc.api.point(f));
+    sc.cps.forEach((c, i) => {
+      if (prev < c.f - 1e-6 && p >= c.f - 1e-6) {
+        const pt = at(c.f);
+        const last = c.f >= 0.999;
+        window.HBScenes.burst(pt.x, pt.y, last ? 160 : 60, last);
+        const chip = $('goal-area').querySelectorAll('.goal-cps span')[i];
+        if (chip) { chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
+        const next = sc.cps[i + 1];
+        sc.msgs.push(last ? '🏆 ' + sc.nama + ' terkumpul penuh!' : '✅ ' + c.nama + ' aman!' + (next ? ' Lanjut ' + next.nama.charAt(0).toLowerCase() + next.nama.slice(1) + ' 💪' : ''));
+      }
+    });
+    [0.25, 0.5, 0.75, 1].forEach((f) => {
+      if (prev < f && p >= f && !sc.cps.some((c) => Math.abs(c.f - f) < 0.005)) {
+        const pt = at(f);
+        window.HBScenes.burst(pt.x, pt.y, f === 1 ? 160 : 30, f === 1);
+      }
+    });
+    if (sc.msgs.length && !sc.msgTimer) {
+      // Tunggu toast "transaksi tersimpan" selesai dulu.
+      sc.msgTimer = setTimeout(() => { toast(sc.msgs.join('\n'), 3500); sc.msgs = []; sc.msgTimer = null; }, 3300);
+    }
   }
 
   /** Kartu "Kata Gasss": komentar terakhir hari ini, atau saran sesuai zona posisi kas. */
@@ -633,6 +728,7 @@
         const iv = setInterval(() => { status.textContent = 'AI sedang menyusun rincian biaya… ' + Math.floor((Date.now() - tick) / 1000) + ' dtk'; }, 1000);
         try {
           const plan = await planGoal(req);
+          if (req.template) plan.tema = req.template;
           clearInterval(iv);
           openGoalReview(plan, o);
         } catch (e) {
@@ -721,6 +817,8 @@
       (plan.transkrip && !edit ? '<p class="transcript">“' + esc(plan.transkrip) + '”</p>' : '') +
       '<div class="field"><label>Nama tujuan</label><div class="gr-name"><input id="gr-emoji" class="gr-emoji" value="' + esc(plan.emoji) +
         '" aria-label="Emoji"><input id="gr-nama" value="' + esc(plan.nama) + '" placeholder="mis. Jakarta Marathon 2027"></div></div>' +
+      '<div class="field"><label>Tampilan kartu</label><div class="chips" id="gr-tema">' + L.THEMES.map((t) =>
+        '<button type="button" class="chip" data-tema="' + t.key + '">' + t.emoji + ' ' + esc(t.label) + '</button>').join('') + '</div></div>' +
       '<div class="field"><label>Tenggat (kapan uangnya harus terkumpul)</label><input type="date" id="gr-tenggat" min="' + minDate + '" value="' + esc(plan.tenggat) + '"></div>' +
       '<div class="field"><label>Rincian biaya' + (edit ? '' : ' · perkiraan AI, silakan koreksi') + '</label><div id="gr-rows"></div>' +
         '<button type="button" class="link-btn" id="gr-add">+ Tambah rincian</button></div>' +
@@ -736,6 +834,11 @@
       const awalEl = el.querySelector('#gr-awal');
       moneyInput(target);
       if (awalEl) moneyInput(awalEl);
+      let tema = plan.tema || L.guessTheme(plan.nama, plan.emoji);
+      const temaBox = el.querySelector('#gr-tema');
+      const drawTema = () => temaBox.querySelectorAll('[data-tema]').forEach((b) => b.classList.toggle('on', b.dataset.tema === tema));
+      temaBox.onclick = (e) => { const b = e.target.closest('[data-tema]'); if (b) { tema = b.dataset.tema; drawTema(); } };
+      drawTema();
       const sumRows = () => rows.reduce((s, r) => s + (r.nominal || 0), 0);
       const calc = () => {
         const t = digits(target.value) - (awalEl ? digits(awalEl.value) : 0);
@@ -785,7 +888,7 @@
       el.querySelector('#gr-cancel').onclick = closeSheet;
       el.querySelector('#gr-save').onclick = async () => {
         const goal = { nama: el.querySelector('#gr-nama').value.trim(), emoji: el.querySelector('#gr-emoji').value.trim() || '🎯',
-          tenggat: tenggat.value, target: digits(target.value), rincian: rows.filter((r) => r.nama.trim() && r.nominal > 0), catatan: plan.catatan || '' };
+          tenggat: tenggat.value, target: digits(target.value), rincian: rows.filter((r) => r.nama.trim() && r.nominal > 0), catatan: plan.catatan || '', tema };
         try {
           if (edit) await api('updateGoal', { goal: { ...goal, id: o.goal.id } });
           else await api('createGoal', { goal, aktif: !o.ide, awal: awalEl ? digits(awalEl.value) : 0 });

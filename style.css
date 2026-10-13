@@ -620,3 +620,73 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 #app .section-head .link-btn { background: rgba(255, 255, 255, .9); color: #14201c; }
 @media (prefers-color-scheme: dark) { #app .section-head .link-btn { background: rgba(0, 0, 0, .35); color: #fff; } }
 :root[data-mood="netral"] #app .section-head .link-btn { background: var(--brand-soft); color: var(--brand); }
+
+/* ============ Gasss: ilustrasi kartu tujuan (scenes.js) ============ */
+:root {
+  --sc-ink: #1e2a27; --sc-done: #16a34a;
+  --sc-grass: #c9efc0; --sc-grass-2: #a9e29b; --sc-road: #e2ddcf; --sc-road-edge: #bdb6a6; --sc-lane: #ffffff; --sc-asphalt: #6b7280;
+  --sc-sea: #bfe6f7; --sc-sea-2: #8fd0ee; --sc-land: #f2dfa8; --sc-land-2: #9fd38b;
+  --sc-pink: #ffe4ef; --sc-pink-2: #ffc9dc; --sc-aisle: #ffffff; --sc-aisle-edge: #f5b8cf;
+  --sc-sky: #d6efff; --sc-sky-2: #f3fbff; --sc-mount: #b9c7d6;
+  --sc-soft: #eef4f2; --sc-phone: #1e2a27; --sc-screen: #f7faf9; --sc-cell: #e3ebe8;
+  --sc-storm: #cfd8e3; --sc-storm-2: #eef2f6; --sc-rain: #6b9bd1;
+}
+:root[data-mood="kuning"] { --sc-done: #ca8a04; }
+:root[data-mood="oranye"] { --sc-done: #ea580c; }
+:root[data-mood="merah"] { --sc-done: #dc2626; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sc-ink: #e9efed;
+    --sc-grass: #1f3a2a; --sc-grass-2: #2a4d36; --sc-road: #3a3f3d; --sc-road-edge: #2c302e; --sc-lane: #c9d2ce; --sc-asphalt: #4b5563;
+    --sc-sea: #12324a; --sc-sea-2: #1b4767; --sc-land: #4a4128; --sc-land-2: #2e5233;
+    --sc-pink: #3a1f2b; --sc-pink-2: #4d2638; --sc-aisle: #5c3346; --sc-aisle-edge: #7a4360;
+    --sc-sky: #13263a; --sc-sky-2: #1d3550; --sc-mount: #34465a;
+    --sc-soft: #222a27; --sc-phone: #0c100f; --sc-screen: #252c29; --sc-cell: #313a37;
+    --sc-storm: #1c2633; --sc-storm-2: #283445; --sc-rain: #7fb2e8;
+  }
+  :root:not([data-mood]), :root[data-mood="hijau"], :root[data-mood="netral"] { --sc-done: #4ade80; }
+}
+.goal-scene { margin: 12px -4px 4px; border-radius: 18px; overflow: hidden; background: var(--sc-soft); }
+.goal-scene svg { display: block; width: 100%; height: auto; }
+.goal-cps { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.goal-cps span { font-size: 11.5px; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: var(--field); color: var(--muted); white-space: nowrap; }
+.goal-cps span.ok { background: color-mix(in srgb, var(--sc-done) 18%, transparent); color: var(--text); }
+.goal-cps span.now { background: color-mix(in srgb, var(--sc-done) 10%, var(--field)); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--sc-done); }
+.goal-cps span.pop { animation: pop .6s ease; }
+.sc-fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+
+.sc-bob { animation: sc-bob .42s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-bob { to { transform: translateY(-3px); } }
+.sc-lane { stroke-dasharray: 8 9; animation: sc-lane 1s linear infinite; }
+@keyframes sc-lane { to { stroke-dashoffset: -17; } }
+.sc-spin { animation: sc-spin 14s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+.sc-drift { animation: sc-drift linear infinite; }
+@keyframes sc-drift { from { transform: translateX(-60px); } to { transform: translateX(410px); } }
+.sc-cheer { animation: sc-cheer .5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom center; }
+@keyframes sc-cheer { to { transform: translateY(-4px) rotate(-6deg); } }
+.sc-wave { animation: sc-wave 3s linear infinite; }
+@keyframes sc-wave { to { transform: translateX(-40px); } }
+.sc-boat { animation: sc-boat 9s ease-in-out infinite alternate; }
+@keyframes sc-boat { to { transform: translateX(46px); } }
+.sc-liquid { animation: sc-liquid 2.2s linear infinite; }
+@keyframes sc-liquid { to { transform: translateX(-60px); } }
+.sc-bubble { animation: sc-bubble linear infinite; opacity: 0; }
+@keyframes sc-bubble { 0% { transform: translateY(70px); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(0); opacity: 0; } }
+.sc-zap { animation: sc-zap 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-zap { 50% { transform: scale(1.2); opacity: .75; } }
+.sc-twinkle { animation: sc-twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-twinkle { 50% { transform: scale(.4); opacity: .2; } }
+.sc-pulse { animation: sc-pulse 1.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-pulse { from { transform: scale(.6); } to { transform: scale(2.2); opacity: 0; } }
+.sc-rise { animation: sc-rise 6s linear infinite; }
+@keyframes sc-rise { from { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } to { transform: translateY(-230px); opacity: 0; } }
+.sc-rain { animation: sc-rain .8s linear infinite; }
+@keyframes sc-rain { from { transform: translateY(0); opacity: .9; } to { transform: translateY(150px); opacity: 0; } }
+.sc-bounce { animation: sc-bounce .8s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-bounce { to { transform: translateY(-5px) rotate(12deg); } }
+@media (prefers-reduced-motion: reduce) {
+  [class^="sc-"], [class*=" sc-"] { animation: none !important; }
+}
+.goal-ghost { flex-basis: 100%; font-size: 11px; font-weight: 600; opacity: .8; }
+.chip.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
