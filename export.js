@@ -29,7 +29,7 @@
 
   const TX_COLS = ['id', 'tanggal', 'jenis', 'nominal', 'kategori', 'dompet_id', 'dompet_tujuan_id',
     'keterangan', 'sumber', 'transkrip', 'dibuat'];
-  const WALLET_COLS = ['id', 'nama', 'urutan', 'arsip', 'dibuat', 'warna', 'tujuan'];
+  const WALLET_COLS = ['id', 'nama', 'urutan', 'arsip', 'dibuat', 'warna', 'tujuan', 'kategori'];
   const GOAL_COLS = ['id', 'nama', 'emoji', 'tema', 'target', 'tenggat', 'mulai', 'awal', 'dompet_id', 'status', 'rincian', 'catatan', 'dibuat', 'tercapai'];
   /** Tujuan untuk lembar cadangan: rincian biaya disimpan sebagai teks JSON. */
   const goalRows = (goals) => (goals || []).map((g) => ({ ...g, rincian: JSON.stringify(g.rincian || []) }));

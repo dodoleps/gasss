@@ -26,8 +26,11 @@
   }
 
   function fresh() {
-    return { versi: 1, wallets: [{ id: L.UTAMA_ID, nama: 'Utama', urutan: '0', arsip: '', dibuat: now(), warna: '' }],
-      categories: DEFAULT_CATS.map((c) => ({ ...c })), transactions: [], goals: [], meta: {} };
+    // Pengguna baru langsung punya dompet per kategori; tinggal membagi uang dari Utama.
+    const stamp = now();
+    const wallets = [{ id: L.UTAMA_ID, nama: 'Utama', urutan: '0', arsip: '', dibuat: stamp, warna: '', kategori: '' }]
+      .concat(L.DOMPET_KATEGORI.map((k, i) => ({ id: newId(), nama: k, urutan: String(i + 1), arsip: '', dibuat: stamp, warna: '', kategori: k })));
+    return { versi: 1, wallets, categories: DEFAULT_CATS.map((c) => ({ ...c })), transactions: [], goals: [], meta: { dompetKategoriDitawarkan: true } };
   }
 
   // ---------- IndexedDB kecil ----------
@@ -190,10 +193,12 @@
       if (!c) throw new Error('Kategori tidak ditemukan');
       c.nama = baru;
       db.transactions.forEach((t) => { if (t.kategori === req.lama && t.jenis === req.jenis) t.kategori = baru; });
+      if (req.jenis === 'keluar') db.wallets.forEach((w) => { if (w.kategori === req.lama) w.kategori = baru; });
       return baru;
     },
     deleteCategory: (req) => {
       db.categories = db.categories.filter((c) => !(c.nama === req.nama && c.jenis === req.jenis));
+      if (req.jenis === 'keluar') db.wallets.forEach((w) => { if (w.kategori === req.nama) w.kategori = ''; });
       return req.nama;
     },
     /** Ganti seluruh isi buku (dipakai saat pulihkan cadangan / pindahan dari Google Sheets). */
@@ -202,7 +207,7 @@
       if (!d || !Array.isArray(d.wallets) || !Array.isArray(d.transactions)) throw new Error('Data cadangan tidak valid');
       const wallets = d.wallets.map((w, i) => ({ id: String(w.id), nama: String(w.nama), urutan: String(w.urutan ?? i),
         arsip: w.arsip ? '1' : '', dibuat: String(w.dibuat || now()), warna: w.warna === undefined || w.warna === null ? '' : String(w.warna),
-        tujuan: w.tujuan ? String(w.tujuan) : '' }));
+        tujuan: w.tujuan ? String(w.tujuan) : '', kategori: w.kategori ? String(w.kategori) : '' }));
       if (!wallets.some((w) => w.id === L.UTAMA_ID)) wallets.unshift(fresh().wallets[0]);
       const categories = (d.categories && d.categories.length ? d.categories : DEFAULT_CATS)
         .filter((c) => c.nama && (c.jenis === 'masuk' || c.jenis === 'keluar')).map((c) => ({ nama: String(c.nama), jenis: c.jenis }));
@@ -229,6 +234,33 @@
       db.transactions = [];
       add(opening);
       return { dihapus, dibawa: opening.reduce((s, t) => s + t.nominal, 0) };
+    },
+    /**
+     * Pengguna lama: buat dompet untuk setiap kategori pengeluaran yang belum punya dompet.
+     * Dompet yang namanya sama dengan kategori cukup ditautkan, tidak dibuat dobel. Hasil: jumlah dompet baru.
+     */
+    ensureCategoryWallets: () => {
+      let dibuat = 0;
+      const cats = db.categories.filter((c) => c.jenis === 'keluar' && c.nama !== 'Lainnya').map((c) => c.nama);
+      cats.forEach((k) => {
+        if (L.walletForCategory(k, db.wallets)) return;
+        // Nama sama persis, atau mengandung kata pertama kategori (mis. "Uang Makan" -> Makan & Minum).
+        const kata = k.toLowerCase().split(/[^a-z]+/)[0];
+        const free = db.wallets.filter((w) => !w.arsip && !w.tujuan && !w.kategori && w.id !== L.UTAMA_ID);
+        const same = free.find((w) => w.nama.toLowerCase() === k.toLowerCase()) || free.find((w) => w.nama.toLowerCase().indexOf(kata) >= 0);
+        if (same) { same.kategori = k; return; }
+        db.wallets.push({ id: newId(), nama: k, urutan: String(db.wallets.length), arsip: '', dibuat: now(), warna: '', kategori: k });
+        dibuat++;
+      });
+      return dibuat;
+    },
+    /** Tautkan dompet ke kategori pengeluaran ('' = lepas). */
+    setWalletCategory: (req) => {
+      const w = findWallet(req.id);
+      if (req.kategori && db.categories.every((c) => !(c.jenis === 'keluar' && c.nama === req.kategori))) throw new Error('Kategori tidak ditemukan');
+      if (req.kategori) db.wallets.forEach((x) => { if (x.kategori === req.kategori) x.kategori = ''; });
+      w.kategori = req.kategori || '';
+      return req.id;
     },
     // ---------- Tujuan ----------
     /** Buat tujuan. aktif = jadikan tujuan aktif (dibuatkan dompet tujuan); kalau tidak, disimpan sebagai ide. */

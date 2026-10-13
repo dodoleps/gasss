@@ -293,6 +293,45 @@
       sumber: per[bulan].masuk >= rata ? 'bulan ini' : 'rata-rata', pengeluaran: keluar, sisaTagihan, porsiTujuan, hariSisa };
   }
 
+  // ---------- Dompet per kategori & jatah konsumtif harian (sistem amplop) ----------
+
+  /** Kategori pengeluaran yang dianggap konsumtif: memotong "jatah aman hari ini". */
+  const KONSUMTIF = ['Makan & Minum', 'Belanja', 'Hiburan'];
+  /** Dompet bawaan: satu per kategori pengeluaran ("Lainnya" tetap dari Utama). */
+  const DOMPET_KATEGORI = ['Makan & Minum', 'Transportasi', 'Belanja', 'Tagihan', 'Kesehatan', 'Hiburan', 'Keluarga'];
+
+  /** Id dompet aktif yang ditautkan ke kategori ini, atau ''. */
+  function walletForCategory(kategori, wallets) {
+    const w = (wallets || []).find((x) => !x.arsip && x.kategori && x.kategori === kategori);
+    return w ? w.id : '';
+  }
+
+  /**
+   * Jatah aman belanja konsumtif hari ini.
+   * - Mode "amplop" (ada dompet untuk kategori konsumtif): isi dompet-dompet itu (sebelum belanja hari ini) ÷ sisa hari bulan ini.
+   *   Terpakai = semua pengeluaran kategori konsumtif hari ini (dari dompet mana pun). Besok jatahnya dihitung ulang dari sisa isi.
+   * - Mode "pemasukan" (belum ada dompet konsumtif): sama dengan safeDaily.
+   */
+  function dailyAllowance(wallets, txs, today, opts) {
+    const amplop = (wallets || []).filter((w) => !w.arsip && KONSUMTIF.indexOf(w.kategori) >= 0);
+    if (!amplop.length) { const j = safeDaily(txs, today, opts); return j && { ...j, mode: 'pemasukan' }; }
+    const ids = new Set(amplop.map((w) => w.id));
+    const [y, m] = today.split('-').map(Number);
+    const hariSisa = new Date(y, m, 0).getDate() - Number(today.slice(8)) + 1;
+    let terpakai = 0, dariAmplop = 0;
+    txs.forEach((t) => {
+      if (t.tanggal !== today || t.jenis !== 'keluar') return;
+      const n = Number(t.nominal) || 0;
+      if (KONSUMTIF.indexOf(t.kategori) >= 0) terpakai += n;
+      if (ids.has(t.dompet_id)) dariAmplop += n;
+    });
+    const saldo = amplop.reduce((sum, w) => sum + walletBalance(w.id, txs), 0);
+    const isi = Math.max(0, saldo + dariAmplop);
+    const perHari = Math.floor(isi / hariSisa / 500) * 500;
+    return { mode: 'amplop', perHari, terpakai, sisaHariIni: perHari - terpakai, isi, saldo, hariSisa, kosong: isi <= 0,
+      dompet: amplop.map((w) => w.nama) };
+  }
+
   /** Zona posisi kas hari ini (untuk nada bicara Gasss). null kalau belum ada uang tercatat bulan ini. */
   function currentZone(txs, today) {
     const days = cashPosition(txs, monthOf(today), today).days.filter((d) => d.persen !== null);
@@ -400,6 +439,9 @@
    */
   function mapAiResult(result, wallets, categories, opts) {
     const active = wallets.filter((w) => !w.arsip);
+    const utama = active.find((w) => w.id === UTAMA_ID);
+    // Pengguna menyebut dompet utama dengan sengaja? Kalau tidak, pengeluaran diambil dari dompet kategorinya.
+    const sebutUtama = utama && String(opts.transkrip || '').toLowerCase().indexOf(utama.nama.toLowerCase()) >= 0;
     const findWallet = (nama) => {
       const n = String(nama || '').trim().toLowerCase();
       const w = active.find((x) => x.nama.toLowerCase() === n);
@@ -416,7 +458,11 @@
       try {
         out.push(cleanTx({
           tanggal: t.tanggal, jenis, nominal: t.nominal, kategori,
-          dompet_id: findWallet(t.dompet) || UTAMA_ID,
+          dompet_id: (() => {
+            const id = findWallet(t.dompet) || UTAMA_ID;
+            if (jenis !== 'keluar' || id !== UTAMA_ID || sebutUtama) return id;
+            return walletForCategory(kategori, wallets) || id;
+          })(),
           dompet_tujuan_id: jenis === 'pindah' ? findWallet(t.dompet_tujuan) : '',
           keterangan: t.keterangan, sumber: opts.sumber, transkrip: opts.transkrip,
         }, opts.today));
@@ -459,6 +505,8 @@
   }
 
   function guessWalletForCategory(kategori, keterangan, wallets) {
+    const byKat = walletForCategory(kategori, wallets);
+    if (byKat) return byKat;
     const kata = (kategori + ' ' + keterangan).toLowerCase().split(/[^a-z]+/).filter((k) => k.length > 3);
     const w = wallets.find((x) => !x.arsip && x.id !== UTAMA_ID && kata.some((k) => x.nama.toLowerCase().indexOf(k) >= 0));
     return w ? w.id : UTAMA_ID;
@@ -608,7 +656,7 @@
       transkrip: String(p.transkrip || '').slice(0, 500) };
   }
 
-  const api = { GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
+  const api = { KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
     daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

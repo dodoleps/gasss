@@ -396,6 +396,11 @@
     const g = activeGoal();
     return L.safeDaily(S.transactions, todayStr(), { goalWallet: g ? g.dompet_id : '', porsiTujuan: g ? goalProg(g).targetBulanIni : 0 });
   }
+  /** Jatah aman hari ini untuk makan, belanja & hiburan (dari isi amplop; cara lama kalau belum ada dompet kategori). */
+  function allowance() {
+    const g = activeGoal();
+    return L.dailyAllowance(S.wallets, S.transactions, todayStr(), { goalWallet: g ? g.dompet_id : '', porsiTujuan: g ? goalProg(g).targetBulanIni : 0 });
+  }
   function rincianTable(g) {
     if (!g.rincian || !g.rincian.length) return '';
     return '<table class="stat-table gd-table">' + g.rincian.map((r) => '<tr><td>' + esc(r.nama) + '</td><td>' + rp(r.nominal) + '</td></tr>').join('') +
@@ -404,7 +409,7 @@
 
   function renderGoalHome() {
     const g = activeGoal();
-    const jatah = safeDaily();
+    const jatah = allowance();
     if (!g) {
       S.scene = null;
       const ide = S.goals.filter((x) => x.status === 'ide').length;
@@ -428,7 +433,10 @@
       }
     }
     html += '<div class="mini mini-safe' + (jatah && jatah.sisaHariIni < 0 ? ' over' : '') + '"><div class="mini-label">Jatah aman hari ini</div>' +
-      (jatah ? '<div class="mini-value">' + rp(Math.max(0, jatah.sisaHariIni)) + '</div>' +
+      (jatah && jatah.mode === 'amplop' ? '<div class="mini-kind">🍜 makan · 🛍️ belanja · 🎬 hiburan</div>' : '') +
+      (jatah && jatah.kosong ? '<div class="mini-value muted">Rp0</div><div class="mini-sub">Amplop makan, belanja & hiburan masih kosong. Bagi dulu uang dari Utama.</div>' +
+        '<button class="mini-btn" data-split-now>👛 Bagi uang</button>'
+        : jatah ? '<div class="mini-value">' + rp(Math.max(0, jatah.sisaHariIni)) + '</div>' +
         '<div class="bar"><i style="width:' + pctW(jatah.perHari > 0 ? Math.max(0, jatah.sisaHariIni) / jatah.perHari : 0) + '"></i></div>' +
         '<div class="mini-sub">' + (jatah.sisaHariIni < 0 ? 'lewat ' + rp(-jatah.sisaHariIni) + '!' : 'dari ' + rp(jatah.perHari)) +
         '<br>terpakai ' + rp(jatah.terpakai) + '</div><button class="mini-btn ghost" data-safe-info>Cara hitung</button>'
@@ -622,7 +630,7 @@
     const z = mood();
     const g = activeGoal();
     const p = g && goalProg(g);
-    const j = safeDaily();
+    const j = allowance();
     return { zona: z.zona || 'kuning', alasan: z.alasan, persenKas: z.persen === null ? null : Math.round(z.persen * 100),
       tujuan: g ? g.nama : '', dompetTujuan: g ? walletName(g.dompet_id) : '', sisa: p ? p.sisa : null,
       tenggat: g ? g.tenggat : '', status: p ? STATUS[p.status].label : '', jatahHarian: j ? Math.max(0, j.sisaHariIni) : null };
@@ -680,9 +688,25 @@
   }
 
   function openSafeInfo() {
-    const j = safeDaily();
+    const j = allowance();
     if (!j) return;
     const row = (a, b, strong) => '<tr><' + (strong ? 'th' : 'td') + '>' + a + '</' + (strong ? 'th' : 'td') + '><' + (strong ? 'th' : 'td') + '>' + b + '</' + (strong ? 'th' : 'td') + '></tr>';
+    if (j.mode === 'amplop') {
+      openSheet('<h3>🧮 Jatah aman hari ini</h3><p class="transcript">Batas belanja konsumtif (makan & minum, belanja, hiburan) supaya isi amplop cukup sampai akhir bulan.</p>' +
+        '<table class="stat-table calc-table">' +
+        row('Isi amplop ' + esc(j.dompet.join(', ')) + ' (sebelum belanja hari ini)', rp(j.isi)) +
+        row('÷ Sisa hari bulan ini', j.hariSisa + ' hari') +
+        row('Jatah hari ini', rp(j.perHari), true) +
+        row('− Sudah dipakai hari ini', rp(j.terpakai)) +
+        row(j.sisaHariIni < 0 ? 'Lewat dari jatah' : 'Sisa jatah hari ini', rp(Math.abs(j.sisaHariIni)), true) + '</table>' +
+        '<p class="transcript">Hemat hari ini, jatah besok otomatis naik. Kebablasan hari ini, jatah besok mengecil. ' +
+        'Bensin, tagihan, atau obat tidak memotong jatah ini karena punya dompet sendiri. Isi amplop lewat <b>Bagi uang</b> di Beranda.</p>' +
+        '<div class="btn-row"><button class="btn" id="si-close">Tutup</button><button class="btn primary" id="si-split">👛 Bagi uang</button></div>', (el) => {
+        el.querySelector('#si-close').onclick = closeSheet;
+        el.querySelector('#si-split').onclick = () => { closeSheet(); openSplit(); };
+      });
+      return;
+    }
     openSheet('<h3>🧮 Jatah aman hari ini</h3><table class="stat-table calc-table">' +
       row('Pemasukan (' + j.sumber + ')', rp(j.pemasukan)) +
       row('− Tagihan rutin yang belum dibayar', rp(j.sisaTagihan)) +
@@ -694,6 +718,27 @@
       '<p class="transcript">Pemasukan memakai yang lebih besar antara pemasukan bulan ini dan rata-rata 3 bulan sebelumnya, jadi tetap jalan walau pemasukanmu tidak tetap. ' +
       'Tagihan rutin = rata-rata kategori Tagihan. Belanja dari dompet tujuan tidak dihitung.</p>' +
       '<div class="btn-row"><button class="btn" id="si-close">Tutup</button></div>', (el) => { el.querySelector('#si-close').onclick = closeSheet; });
+  }
+
+  /** Pengguna lama (belum punya dompet per kategori): tawarkan sekali. */
+  async function offerCategoryWallets() {
+    if (META.dompetKategoriDitawarkan || !$('sheet-backdrop').hidden || !$('tutorial').hidden) return;
+    const belum = S.categories.filter((c) => c.jenis === 'keluar' && c.nama !== 'Lainnya' && !L.walletForCategory(c.nama, S.wallets));
+    META.dompetKategoriDitawarkan = true;
+    await api('setMeta', { key: 'dompetKategoriDitawarkan', value: true });
+    if (!belum.length) return;
+    openSheet('<h3>👛 Pakai dompet per kategori?</h3>' +
+      '<p>Gasss sekarang memakai <b>sistem amplop</b>: setiap kategori pengeluaran punya dompet sendiri. Gajian masuk ke Utama, lalu kamu bagi ke tiap dompet.</p>' +
+      '<div class="chips" style="margin-bottom:10px">' + belum.map((c) => '<span class="chip">' + (ICON[c.nama] || '•') + ' ' + esc(c.nama) + '</span>').join('') + '</div>' +
+      '<p class="transcript">Dompet yang sudah ada tidak diubah. Pengeluaran makan, belanja, dan hiburan diambil dari amplopnya, dan <b>jatah aman hari ini</b> dihitung dari isi amplop itu.</p>' +
+      '<div class="btn-row"><button class="btn" id="ck-no">Nanti saja</button><button class="btn primary" id="ck-yes">Buat dompetnya</button></div>', (el) => {
+      el.querySelector('#ck-no').onclick = () => { closeSheet(); toast('Oke. Bisa dibuat kapan saja dari Atur → Dompet.'); };
+      el.querySelector('#ck-yes').onclick = async () => {
+        closeSheet();
+        const n = await run(() => api('ensureCategoryWallets'));
+        if (n !== null) { toast((n ? n + ' dompet baru dibuat. ' : '') + 'Sekarang bagi uang dari Utama ke tiap dompet 👛', 4500); setTimeout(openSplit, 900); }
+      };
+    });
   }
 
   /** Tanya tujuan saat pertama kali (boleh "Nanti dulu"). */
@@ -1124,6 +1169,12 @@
             '<option' + (c.nama === cur ? ' selected' : '') + '>' + esc(c.nama) + '</option>').join('');
         };
         el.querySelectorAll('#tf-jenis button').forEach((b) => { b.onclick = () => { jenis = b.dataset.j; sync(); }; });
+        // Pengeluaran baru: dompet otomatis mengikuti kategori yang dipilih.
+        el.querySelector('#tf-cat').addEventListener('change', () => {
+          if (!isNew || jenis !== 'keluar') return;
+          const w = L.walletForCategory(el.querySelector('#tf-cat').value, S.wallets);
+          el.querySelector('#tf-wallet').value = w || L.UTAMA_ID;
+        });
         sync();
         el.querySelector('#tf-cancel').onclick = closeSheet;
         if (!isNew) {
@@ -1225,6 +1276,9 @@
         '" data-color="' + i + '" aria-label="' + COLOR_NAMES[i] + '"></button>').join('') + '</div></div>' +
       '<div class="list"><button class="list-item" id="ew-rename">Ganti nama</button>' +
       '<button class="list-item" id="ew-history">Lihat riwayat dompet ini</button>' +
+      (id === L.UTAMA_ID || w.tujuan ? '' : '<div class="list-item"><label for="ew-kat" style="flex:1">Dompet untuk kategori</label><select id="ew-kat" class="ew-kat">' +
+        '<option value="">(tidak ada)</option>' + catsOf('keluar').filter((c) => c.nama !== 'Lainnya').map((c) => '<option' + (w.kategori === c.nama ? ' selected' : '') + '>' +
+        esc(c.nama) + '</option>').join('') + '</select></div>') +
       (id === L.UTAMA_ID ? '' : '<button class="list-item danger-text" id="ew-del">Hapus dompet</button>') + '</div>' +
       '<div class="btn-row"><button class="btn" id="ew-close">Tutup</button></div>', (el) => {
       el.querySelector('#ew-close').onclick = closeSheet;
@@ -1248,6 +1302,8 @@
         };
       });
       el.querySelector('#ew-history').onclick = () => { closeSheet(); showWalletHistory(id); };
+      const kat = el.querySelector('#ew-kat');
+      if (kat) kat.onchange = async () => { await api('setWalletCategory', { id, kategori: kat.value }); await refresh(true); toast(kat.value ? 'Pengeluaran ' + kat.value + ' sekarang diambil dari ' + w.nama : 'Tautan kategori dilepas'); };
       el.querySelector('#ew-rename').onclick = async () => {
         const nama = await askText('Nama dompet', w.nama);
         if (nama && nama !== w.nama) await run(() => api('renameWallet', { id, nama }), 'Nama dompet diganti');
@@ -1585,7 +1641,7 @@
     await refresh();
     if (!DEMO && LEGACY_SERVER) offerMigrationOnce();
     if (!META.tutorialSelesai) showTutorial();
-    else congratulateOnce().then(maybeAskGoal, maybeAskGoal);
+    else congratulateOnce().then(maybeAskGoal, maybeAskGoal).then(offerCategoryWallets);
   }
 
   // ---------- Ucapan selamat & stiker pencapaian hemat ----------
@@ -1951,7 +2007,7 @@
 
   // ---------- Data di HP: cadangan, pulihkan, laporan, pindahan ----------
 
-  const BACKUP_EVERY_DAYS = 7;
+  const BACKUP_EVERY_DAYS = 30;
   const META = {};   // salinan meta dari penyimpanan HP (lastBackup, migrasiDicek)
 
   async function loadMeta() {
@@ -1964,6 +2020,8 @@
     META.ucapanBulan = await api('getMeta', { key: 'ucapanBulan' });
     META.tujuanNanti = await api('getMeta', { key: 'tujuanNanti' });
     META.komentar = await api('getMeta', { key: 'komentar' });
+    META.dompetKategoriDitawarkan = await api('getMeta', { key: 'dompetKategoriDitawarkan' });
+    META.cadanganNanti = await api('getMeta', { key: 'cadanganNanti' });
   }
 
   /** Catat sidik jari data yang baru saja dicadangkan (syarat tombol "Mulai pencatatan baru"). */
@@ -1983,11 +2041,13 @@
 
   function renderBackupBanner() {
     const b = $('backup-banner');
-    const due = S.transactions.length > 0 && daysSince(META.lastBackup) >= BACKUP_EVERY_DAYS;
+    // Patokan: cadangan terakhir, atau catatan pertama kalau belum pernah mencadangkan. "Nanti" menyembunyikan sampai bulan berikutnya.
+    const pertama = S.transactions.reduce((m, t) => (!m || String(t.dibuat) < m ? String(t.dibuat) : m), '');
+    const due = S.transactions.length > 0 && daysSince(META.lastBackup || pertama) >= BACKUP_EVERY_DAYS && META.cadanganNanti !== thisMonth();
     b.hidden = !due;
     if (due) {
       b.innerHTML = '<span>💾 ' + (META.lastBackup ? 'Sudah ' + daysSince(META.lastBackup) + ' hari belum simpan cadangan.'
-        : 'Data hanya ada di HP ini. Simpan cadangan supaya aman.') + '</span><button data-backup-now>Simpan</button>';
+        : 'Sudah sebulan mencatat. Data hanya ada di HP ini, simpan cadangan yuk.') + '</span><span class="bb-btns"><button data-backup-later>Nanti</button><button data-backup-now>Simpan</button></span>';
     }
   }
 
@@ -2220,7 +2280,14 @@
     $('btn-migrate').onclick = () => migrateFromSheets(false);
     $('btn-report-pdf').onclick = () => exportReport('pdf');
     $('btn-report-xlsx').onclick = () => exportReport('xlsx');
-    $('backup-banner').onclick = (e) => { if (e.target.closest('[data-backup-now]')) chooseBackup(); };
+    $('backup-banner').onclick = async (e) => {
+      if (e.target.closest('[data-backup-now]')) chooseBackup();
+      if (e.target.closest('[data-backup-later]')) {
+        META.cadanganNanti = thisMonth();
+        render();
+        await api('setMeta', { key: 'cadanganNanti', value: META.cadanganNanti });
+      }
+    };
     $('btn-sheets-backup').onclick = () => withSheets('backup');
     $('btn-sheets-restore').onclick = () => withSheets('restore');
     $('btn-tutorial').onclick = showTutorial;
@@ -2251,6 +2318,7 @@
       if (e.target.closest('[data-goal-ideas]')) { openGoalIdeas(); return; }
       if (e.target.closest('[data-set-aside]')) { const g = activeGoal(); if (g) openSetAside(goalProg(g).kurangBulanIni); return; }
       if (e.target.closest('[data-safe-info]')) { openSafeInfo(); return; }
+      if (e.target.closest('[data-split-now]')) { openSplit(); return; }
       const wBtn = e.target.closest('[data-wallet]');
       if (wBtn) { showWalletHistory(wBtn.dataset.wallet); return; }
       const ew = e.target.closest('[data-edit-wallet]');

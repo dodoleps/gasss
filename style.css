@@ -690,3 +690,9 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 }
 .goal-ghost { flex-basis: 100%; font-size: 11px; font-weight: 600; opacity: .8; }
 .chip.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+
+/* ============ Amplop & pengingat cadangan ============ */
+.mini-kind { font-size: 10.5px; font-weight: 700; color: var(--muted); margin-top: 1px; }
+.bb-btns { display: flex; gap: 6px; flex: 0 0 auto; }
+.backup-banner .bb-btns button[data-backup-later] { background: transparent; color: var(--muted); }
+.ew-kat { border: 1.5px solid var(--line); background: var(--field); border-radius: 12px; padding: 7px 10px; font: inherit; font-size: 14px; color: inherit; max-width: 55%; }
