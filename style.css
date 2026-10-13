@@ -547,22 +547,57 @@ a.list-item { color: inherit; text-decoration: none; }
 /* ============ Gasss: warna latar mengikuti suasana keuangan ============ */
 /* hijau = aman, kuning = mulai hati-hati, oranye = menipis, merah = bahaya (lihat moodZone di logic.js).
    --page = warna latar halaman, --on-page = warna teks yang langsung menempel di latar. Kartu tetap putih/gelap. */
-:root { --page: var(--bg); --on-page: var(--muted); }
-:root[data-mood="hijau"] { --page: #16a34a; --on-page: #ffffff; }
-:root[data-mood="kuning"] { --page: #eab308; --on-page: #2b2100; }
-:root[data-mood="oranye"] { --page: #ea580c; --on-page: #ffffff; }
-:root[data-mood="merah"] { --page: #dc2626; --on-page: #ffffff; }
+/* Gradasi berlapis: --g1 (gelap, bawah kanan), --g2 (warna utama), --g3 (cahaya lembut kiri atas).
+   Didaftarkan dengan @property supaya perpindahan zona (mis. hijau -> merah) beranimasi halus. */
+@property --g1 { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --g2 { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --g3 { syntax: '<color>'; inherits: true; initial-value: transparent; }
+:root { --page: var(--bg); --on-page: var(--muted); --g1: var(--bg); --g2: var(--bg); --g3: rgba(255, 255, 255, 0);
+  transition: --g1 1s ease, --g2 1s ease, --g3 1s ease; }
+:root[data-mood="hijau"] { --g1: #046c4e; --g2: #16a34a; --g3: rgba(190, 242, 100, .6); --page: #16a34a; --on-page: #ffffff; }
+:root[data-mood="kuning"] { --g1: #c27803; --g2: #facc15; --g3: rgba(255, 251, 210, .75); --page: #eab308; --on-page: #2b2100; }
+:root[data-mood="oranye"] { --g1: #b4330b; --g2: #f97316; --g3: rgba(254, 215, 170, .6); --page: #ea580c; --on-page: #ffffff; }
+:root[data-mood="merah"] { --g1: #8f1414; --g2: #e11d48; --g3: rgba(253, 164, 175, .55); --page: #dc2626; --on-page: #ffffff; }
 @media (prefers-color-scheme: dark) {
-  :root[data-mood="hijau"] { --page: #14532d; }
-  :root[data-mood="kuning"] { --page: #713f12; --on-page: #fff7d6; }
-  :root[data-mood="oranye"] { --page: #7c2d12; }
-  :root[data-mood="merah"] { --page: #7f1d1d; }
+  :root[data-mood="hijau"] { --g1: #03261a; --g2: #166534; --g3: rgba(74, 222, 128, .22); --page: #14532d; }
+  :root[data-mood="kuning"] { --g1: #2e1f04; --g2: #854d0e; --g3: rgba(250, 204, 21, .22); --page: #713f12; --on-page: #fff7d6; }
+  :root[data-mood="oranye"] { --g1: #2f0d04; --g2: #9a3412; --g3: rgba(251, 146, 60, .24); --page: #7c2d12; }
+  :root[data-mood="merah"] { --g1: #2d0507; --g2: #9f1239; --g3: rgba(251, 113, 133, .24); --page: #7f1d1d; }
 }
-html, body { transition: background-color .8s ease; }
-body { background-image: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .06) 60%, rgba(0, 0, 0, .1)); background-attachment: fixed; min-height: 100vh; }
-:root[data-mood="netral"] body { background-image: none; }
+html { background: var(--g1); }
+body { background: transparent; min-height: 100vh; }
+:root[data-mood="netral"], :root[data-mood="netral"] body { background: var(--bg); }
+
+/* Lapisan latar tetap (fixed) di belakang semua isi. Ukurannya dikunci ke layar supaya penutup bilah status di atas
+   bisa memakai gambar yang sama persis (tanpa sambungan terlihat). */
+.mood-bg, body::before {
+  background:
+    radial-gradient(120% 55% at 0% 0%, var(--g3) 0%, transparent 62%),
+    radial-gradient(90% 45% at 100% 100%, var(--g1) 0%, transparent 75%),
+    linear-gradient(160deg, var(--g2) 0%, color-mix(in srgb, var(--g2) 55%, var(--g1)) 55%, var(--g1) 100%);
+  background-size: 100vw 100vh; background-position: 0 0; background-repeat: no-repeat;
+}
+.mood-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+/* Cahaya lembut yang bergerak sangat pelan supaya latar terasa hidup. */
+.mood-bg::before, .mood-bg::after {
+  content: ""; position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(40px); opacity: .55;
+  background: radial-gradient(circle, var(--g3) 0%, transparent 65%);
+}
+.mood-bg::before { top: -25vmax; right: -30vmax; animation: drift1 22s ease-in-out infinite alternate; }
+.mood-bg::after { bottom: -35vmax; left: -30vmax; opacity: .35; animation: drift2 28s ease-in-out infinite alternate; }
+@keyframes drift1 { to { transform: translate(-18vmax, 14vmax) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(16vmax, -12vmax) scale(1.2); } }
+:root[data-mood="netral"] .mood-bg { display: none; }
+@media (prefers-reduced-motion: reduce) { .mood-bg::before, .mood-bg::after { animation: none; } }
+
 /* Penutup area bilah status iPhone (bilahnya tembus pandang supaya warna latar penuh). */
-body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); background: var(--page); z-index: 10; transition: background-color .8s ease; }
+body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); z-index: 10; }
+:root[data-mood="netral"] body::before { background: var(--bg); }
+/* Baris filter Riwayat yang menempel di atas: kaca buram supaya gradasi tetap terlihat. */
+:root:not([data-mood="netral"]) .filters {
+  background: color-mix(in srgb, var(--g2) 55%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+}
 
 /* Bagian atas: kaca transparan di atas warna latar */
 :root:not([data-mood="netral"]) .hero {
