@@ -688,7 +688,6 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 @media (prefers-reduced-motion: reduce) {
   [class^="sc-"], [class*=" sc-"] { animation: none !important; }
 }
-.goal-ghost { flex-basis: 100%; font-size: 11px; font-weight: 600; opacity: .8; }
 .chip.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
 
 /* ============ Amplop & pengingat cadangan ============ */
@@ -696,3 +695,16 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .bb-btns { display: flex; gap: 6px; flex: 0 0 auto; }
 .backup-banner .bb-btns button[data-backup-later] { background: transparent; color: var(--muted); }
 .ew-kat { border: 1.5px solid var(--line); background: var(--field); border-radius: 12px; padding: 7px 10px; font: inherit; font-size: 14px; color: inherit; max-width: 55%; }
+
+/* Pensil ubah dompet di kartu dompet Beranda */
+.wallet .wallet-top { justify-content: flex-start; gap: 6px; }
+.wallet-edit { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px;
+  background: rgba(255, 255, 255, .75); color: var(--w-ink); flex: 0 0 auto; }
+@media (prefers-color-scheme: dark) { .wallet-edit { background: rgba(255, 255, 255, .1); } }
+.wallet-edit:focus-visible { outline: 2px solid var(--w-ink); outline-offset: 1px; }
+.head-btns { display: flex; gap: 6px; }
+
+/* Rapikan: nama tujuan boleh 2 baris (tidak terpotong oleh label status) */
+.goal-name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; text-wrap: balance; }
+.goal-top { align-items: flex-start; }
+.goal-top .goal-chip { margin-top: 2px; }

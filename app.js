@@ -24,6 +24,10 @@
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  function monthShort(ym) {
+    const [y, m] = ym.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+  }
   function fmtMonth(ym) {
     const [y, m] = ym.split('-').map(Number);
     return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
@@ -141,10 +145,10 @@
     const aktif = cw.filter((w) => !w.arsip);
     $('total-saldo').textContent = rp(aktif.reduce((s, w) => s + w.saldo, 0));
     $('total-saldo').parentNode.classList.toggle('compact', !!activeGoal());
-    renderMood();
+    const m = renderMood();
     const me = DEMO ? null : session();
     const first = me && (me.nama || me.email || '').split(/[\s@]/)[0];
-    $('hello').textContent = 'Halo' + (first ? ', ' + first : '') + ' 👋';
+    $('hello').textContent = greeting(m.zona, first);
     renderHome(cw);
     if (S.tab === 'history') renderHistory();
     if (S.tab === 'report') renderReport();
@@ -163,10 +167,13 @@
     const byId = Object.fromEntries(cw.map((w) => [w.id, w]));
     $('wallet-grid').innerHTML = activeWallets().map((w0) => {
       const w = byId[w0.id];
-      const note = { menipis: 'Hampir habis', habis: w.saldo < 0 ? 'Minus' : 'Habis', kosong: 'Belum diisi', aman: '' }[w.status];
+      const note = { menipis: 'Hampir habis', habis: w.saldo < 0 ? 'Minus' : 'Habis', kosong: '', aman: '' }[w.status];
       return '<button class="wallet ' + walletColor(w.id) + '" data-status="' + w.status + '" data-wallet="' + esc(w.id) + '">' +
         '<div class="wallet-top"><span class="wallet-emoji">' + wEmoji(w) + '</span>' +
-        (note ? '<span class="badge">' + note + '</span>' : '') + '</div>' +
+        (note ? '<span class="badge">' + note + '</span>' : '') +
+        '<span class="wallet-edit" role="button" tabindex="0" aria-label="Ubah dompet ' + esc(w.nama) + '" data-edit-wallet="' + esc(w.id) + '">' +
+        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span></div>' +
         '<div class="wallet-name">' + esc(w.nama) + '</div>' +
         '<div class="wallet-saldo">' + rp(w.saldo) + '</div>' +
         '<div class="bar"><i style="width:' + Math.round(w.persen * 100) + '%"></i></div></button>';
@@ -183,12 +190,14 @@
     let sub, amt, cls;
     if (t.jenis === 'pindah') {
       sub = walletName(t.dompet_id) + ' → ' + walletName(t.dompet_tujuan_id);
+      if (!t.keterangan) t = { ...t, keterangan: 'Isi ' + walletName(t.dompet_tujuan_id) };
       amt = rp(t.nominal); cls = 'c-move';
     } else {
-      sub = t.kategori + ' · ' + walletName(t.dompet_id);
+      const wn = walletName(t.dompet_id);
+      sub = wn === t.kategori ? t.kategori : t.kategori + ' · ' + wn;
       amt = (t.jenis === 'masuk' ? '+' : '-') + rp(t.nominal); cls = t.jenis === 'masuk' ? 'c-in' : 'c-out';
     }
-    if (S.tab === 'home' && t.tanggal !== todayStr()) sub += ' · ' + fmtDay(t.tanggal);
+    if (S.tab === 'home' && t.tanggal !== todayStr()) sub += ' · ' + shortDay(t.tanggal);
     return '<button class="tx' + (S.newIds.has(t.id) ? ' new' : '') + '" data-tx="' + esc(t.id) + '">' +
       '<span class="tx-icon ' + walletColor(t.jenis === 'pindah' ? t.dompet_tujuan_id : t.dompet_id) + '">' +
         (ICON[t.kategori] || (t.jenis === 'masuk' ? '💰' : '💸')) + '</span>' +
@@ -197,16 +206,24 @@
       '<span class="tx-amt ' + cls + '">' + amt + '</span></button>';
   }
 
+  /** "Kemarin" atau "1 Okt" (untuk daftar singkat di Beranda). */
+  function shortDay(ymd) {
+    const d = fmtDay(ymd);
+    if (d === 'Kemarin') return d;
+    const [y, m, dd] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, dd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  }
+
   function renderHistory() {
     const f = S.filter;
     const months = Array.from(new Set(S.transactions.map((t) => L.monthOf(t.tanggal)).concat([thisMonth()]))).sort().reverse();
     $('f-month').innerHTML = '<option value="">Semua bulan</option>' +
-      months.map((m) => '<option value="' + m + '"' + (m === f.month ? ' selected' : '') + '>' + fmtMonth(m) + '</option>').join('');
-    $('f-wallet').innerHTML = '<option value="">Semua dompet</option>' +
+      months.map((m) => '<option value="' + m + '"' + (m === f.month ? ' selected' : '') + '>' + monthShort(m) + '</option>').join('');
+    $('f-wallet').innerHTML = '<option value="">Dompet</option>' +
       S.wallets.map((w) => '<option value="' + esc(w.id) + '"' + (w.id === f.wallet ? ' selected' : '') + '>' +
         esc(w.nama) + (w.arsip ? ' (dihapus)' : '') + '</option>').join('');
     const catNames = Array.from(new Set(S.categories.map((c) => c.nama).concat(['Pindah dana'])));
-    $('f-cat').innerHTML = '<option value="">Semua kategori</option>' +
+    $('f-cat').innerHTML = '<option value="">Kategori</option>' +
       catNames.map((c) => '<option' + (c === f.cat ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
 
     const q = f.q.trim().toLowerCase();
@@ -433,7 +450,7 @@
       }
     }
     html += '<div class="mini mini-safe' + (jatah && jatah.sisaHariIni < 0 ? ' over' : '') + '"><div class="mini-label">Jatah aman hari ini</div>' +
-      (jatah && jatah.mode === 'amplop' ? '<div class="mini-kind">🍜 makan · 🛍️ belanja · 🎬 hiburan</div>' : '') +
+      (jatah && jatah.mode === 'amplop' ? '<div class="mini-kind">makan · belanja · hiburan</div>' : '') +
       (jatah && jatah.kosong ? '<div class="mini-value muted">Rp0</div><div class="mini-sub">Amplop makan, belanja & hiburan masih kosong. Bagi dulu uang dari Utama.</div>' +
         '<button class="mini-btn" data-split-now>👛 Bagi uang</button>'
         : jatah ? '<div class="mini-value">' + rp(Math.max(0, jatah.sisaHariIni)) + '</div>' +
@@ -486,7 +503,7 @@
     card.querySelector('.goal-amount').innerHTML = '<b>' + rp(p.terkumpul) + '</b><span>dari ' + rp(p.target) + '</span><em>' + Math.round(p.persen * 100) + '%</em>';
     card.querySelector('.goal-foot').innerHTML = '<span>⏳ ' + fmtDate(g.tenggat) + ' · ' + sisaHariText(p.sisaHari) + '</span>' +
       '<span class="' + (telat ? 'c-warn' : '') + '">' + (p.status === 'tercapai' ? '🎉 Selamat!' : p.perkiraan ? '🏁 Perkiraan ' + fmtMonthShort(p.perkiraan) : '🏁 Mulai sisihkan dulu') + '</span>' +
-      (p.status !== 'tercapai' ? '<span class="goal-ghost">Bayangan samar = posisi seharusnya (' + rpShort(p.seharusnya) + ')</span>' : '');
+      '';
     animateScene(p.status === 'tercapai' ? 1 : p.persen);
   }
 
@@ -600,22 +617,33 @@
     return L.moodZone(S.transactions, todayStr(), { goalWallet: g ? g.dompet_id : '', porsiTujuan: g ? goalProg(g).targetBulanIni : 0 });
   }
 
-  const MOOD_LABEL = { hijau: 'Aman', kuning: 'Mulai hati-hati', oranye: 'Menipis', merah: 'Bahaya' };
+  /** Sapaan 2–4 kata mengikuti suasana keuangan; variasinya berganti setiap hari. */
+  const GREET = {
+    hijau: ['Aman jaya', 'Santuy dulu', 'Cuan aman'],
+    kuning: ['Pelan-pelan ya', 'Mulai hemat', 'Jaga ritme'],
+    oranye: ['Rem dikit', 'Waspada', 'Tahan jajan'],
+    merah: ['Awas boncos', 'Stop jajan', 'Darurat dompet'],
+  };
+  const GREET_ICON = { hijau: '😎', kuning: '🙂', oranye: '✋', merah: '😤' };
+  function greeting(zona, name) {
+    if (!zona) return 'Halo' + (name ? ', ' + name : '') + ' 👋';
+    const list = GREET[zona];
+    const pick = list[Number(todayStr().slice(8)) % list.length];
+    return pick + (name ? ', ' + name : '') + (zona === 'merah' ? '!' : '') + ' ' + GREET_ICON[zona];
+  }
   /** Warna latar seluruh aplikasi mengikuti suasana keuangan + label kecil di bagian atas. */
   function renderMood() {
     const m = mood();
     const root = document.documentElement;
     root.dataset.mood = m.zona || 'netral';
     const el = $('mood-label');
-    if (!m.zona) { el.hidden = true; }
-    else {
-      const why = m.alasan === 'target' ? 'uang bebas bulan ini habis' : m.persen === null ? 'belum ada uang bulan ini' : 'sisa kas ' + Math.round(m.persen * 100) + '%';
-      el.hidden = false;
-      el.textContent = MOOD[m.zona] + ' ' + MOOD_LABEL[m.zona] + ' · ' + why;
-    }
+    // Suasana sudah terbaca dari warna & sapaan; label cukup angkanya.
+    el.hidden = !m.zona;
+    if (m.zona) el.textContent = m.alasan === 'target' ? 'Uang bebas habis' : m.persen === null ? 'Belum ada uang' : 'Sisa kas ' + Math.round(m.persen * 100) + '%';
     // Warna bilah status browser / iPhone ikut latar.
     const c = getComputedStyle(root).getPropertyValue('--page').trim();
     document.querySelectorAll('meta[name="theme-color"]').forEach((x) => x.setAttribute('content', c));
+    return m;
   }
 
   async function setKomentar(text, zona) {
@@ -2268,6 +2296,12 @@
       const nama = await askText('Nama dompet baru', '', 'mis. Uang Makan');
       if (nama) await run(() => api('addWallet', { nama }), 'Dompet "' + nama + '" dibuat');
     };
+    $('btn-add-wallet-home').onclick = () => $('btn-add-wallet').onclick();
+    // Pensil dompet bisa dibuka dengan keyboard juga.
+    document.body.addEventListener('keydown', (e) => {
+      const ew = (e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('[data-edit-wallet]');
+      if (ew) { e.preventDefault(); editWallet(ew.dataset.editWallet); }
+    });
     document.querySelectorAll('[data-add-cat]').forEach((b) => {
       b.onclick = async () => {
         const nama = await askText('Kategori ' + (b.dataset.addCat === 'masuk' ? 'pemasukan' : 'pengeluaran') + ' baru', '');
@@ -2319,6 +2353,8 @@
       if (e.target.closest('[data-set-aside]')) { const g = activeGoal(); if (g) openSetAside(goalProg(g).kurangBulanIni); return; }
       if (e.target.closest('[data-safe-info]')) { openSafeInfo(); return; }
       if (e.target.closest('[data-split-now]')) { openSplit(); return; }
+      const ewFirst = e.target.closest('[data-edit-wallet]');
+      if (ewFirst) { editWallet(ewFirst.dataset.editWallet); return; }
       const wBtn = e.target.closest('[data-wallet]');
       if (wBtn) { showWalletHistory(wBtn.dataset.wallet); return; }
       const ew = e.target.closest('[data-edit-wallet]');
