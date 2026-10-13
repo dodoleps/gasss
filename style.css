@@ -100,7 +100,7 @@
 .wc-11 { --w-bg: var(--w11-bg); --w-ink: var(--w11-ink); }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; background: var(--bg); color: var(--text); }
+html, body { margin: 0; background: var(--page, var(--bg)); color: var(--text); }
 body {
   font: 16px/1.45 "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -205,7 +205,7 @@ main { padding: 0 16px; }
 .empty { color: var(--muted); text-align: center; padding: 30px 10px; }
 
 /* ---------- Filter & input ---------- */
-.filters { position: sticky; top: 0; background: var(--bg); padding: 12px 0 6px; z-index: 2; }
+.filters { position: sticky; top: var(--safe-t); background: var(--page, var(--bg)); padding: 12px 0 6px; z-index: 2; }
 .filters input, .filter-row select, .field input, .field select {
   width: 100%; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 16px; background: var(--field);
   outline: none; -webkit-appearance: none; appearance: none;
@@ -246,7 +246,7 @@ main { padding: 0 16px; }
 }
 .voice-bar > * { pointer-events: auto; }
 .mic-btn {
-  width: 76px; height: 76px; border-radius: 50%; border: 4px solid var(--bg);
+  width: 76px; height: 76px; border-radius: 50%; border: 4px solid var(--page, var(--bg));
   background: linear-gradient(145deg, #6fcfb6 0%, #3a9f88 100%); color: #fff;
   box-shadow: 0 10px 28px rgba(58, 159, 136, .38); display: grid; place-items: center;
 }
@@ -543,3 +543,45 @@ a.list-item { color: inherit; text-decoration: none; }
 .gr-calc { font-size: 13px; font-weight: 700; color: var(--brand); margin: 0 4px; min-height: 18px; }
 .gd-table { margin-bottom: 14px; }
 .calc-table td:last-child, .calc-table th:last-child { white-space: nowrap; }
+
+/* ============ Gasss: warna latar mengikuti suasana keuangan ============ */
+/* hijau = aman, kuning = mulai hati-hati, oranye = menipis, merah = bahaya (lihat moodZone di logic.js).
+   --page = warna latar halaman, --on-page = warna teks yang langsung menempel di latar. Kartu tetap putih/gelap. */
+:root { --page: var(--bg); --on-page: var(--muted); }
+:root[data-mood="hijau"] { --page: #16a34a; --on-page: #ffffff; }
+:root[data-mood="kuning"] { --page: #eab308; --on-page: #2b2100; }
+:root[data-mood="oranye"] { --page: #ea580c; --on-page: #ffffff; }
+:root[data-mood="merah"] { --page: #dc2626; --on-page: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-mood="hijau"] { --page: #14532d; }
+  :root[data-mood="kuning"] { --page: #713f12; --on-page: #fff7d6; }
+  :root[data-mood="oranye"] { --page: #7c2d12; }
+  :root[data-mood="merah"] { --page: #7f1d1d; }
+}
+html, body { transition: background-color .8s ease; }
+body { background-image: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .06) 60%, rgba(0, 0, 0, .1)); background-attachment: fixed; min-height: 100vh; }
+:root[data-mood="netral"] body { background-image: none; }
+/* Penutup area bilah status iPhone (bilahnya tembus pandang supaya warna latar penuh). */
+body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); background: var(--page); z-index: 10; transition: background-color .8s ease; }
+
+/* Bagian atas: kaca transparan di atas warna latar */
+:root:not([data-mood="netral"]) .hero {
+  background: rgba(255, 255, 255, .16); color: var(--on-page); box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, .28); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+:root[data-mood="kuning"] .hero { background: rgba(255, 255, 255, .3); border-color: rgba(255, 255, 255, .45); }
+:root:not([data-mood="netral"]) .hero .icon-btn { background: rgba(255, 255, 255, .22); color: inherit; }
+.mood-label {
+  display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, .24); color: inherit;
+}
+:root[data-mood="netral"] .mood-label { background: var(--card); }
+:root[data-mood="merah"] .mood-label { animation: throb 1.6s ease-in-out infinite; }
+@keyframes throb { 50% { background: rgba(255, 255, 255, .42); } }
+
+/* Teks yang langsung menempel di latar harus tetap terbaca */
+#app h2, #app .day-head, #app .report-month strong, #app .recent > .transcript,
+#history-list > .empty, #r-cats > .empty { color: var(--on-page); }
+#app .section-head .link-btn { background: rgba(255, 255, 255, .9); color: #14201c; }
+@media (prefers-color-scheme: dark) { #app .section-head .link-btn { background: rgba(0, 0, 0, .35); color: #fff; } }
+:root[data-mood="netral"] #app .section-head .link-btn { background: var(--brand-soft); color: var(--brand); }

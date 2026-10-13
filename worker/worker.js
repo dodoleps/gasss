@@ -210,6 +210,7 @@ function cleanContext(k) {
   const num = (v) => (v === null || v === undefined || v === '' ? null : Math.round(Number(v)) || 0);
   return {
     zona: ZONA.includes(k.zona) ? k.zona : 'kuning',
+    alasan: k.alasan === 'target' ? 'target' : 'kas',
     persenKas: num(k.persenKas),
     tujuan: str(k.tujuan, 60).trim(), dompetTujuan: str(k.dompetTujuan, 60).trim(),
     sisa: num(k.sisa), tenggat: /^\d{4}-\d{2}-\d{2}$/.test(k.tenggat || '') ? k.tenggat : '',
@@ -232,6 +233,8 @@ function commentPrompt(c) {
       (c.dompetTujuan ? ' Uangnya disimpan di dompet "' + c.dompetTujuan + '".' : '')
       : 'Pengguna belum punya tujuan; sesekali ajak membuat tujuan.',
     c.jatahHarian !== null ? 'Jatah aman belanja hari ini: ' + rp(c.jatahHarian) + '.' : '',
+    c.alasan === 'target' ? 'Penting: walau persen kas masih terlihat banyak, uang bebas bulan ini SUDAH HABIS (sisanya untuk porsi tujuan & tagihan). ' +
+      'Jangan menyebut persen kas; tegur bahwa belanja ini memakan jatah tujuan.' : '',
     'Nada: ' + NADA[c.zona],
     '- Kalau mau menyebut berapa hari tujuan mundur (karena belanja) atau maju (karena menabung), tulis persis token {hari},',
     '  mis. "Jakarta Marathon mundur {hari} hari". Aplikasi yang menghitung angkanya; jangan menulis angka harinya sendiri.',

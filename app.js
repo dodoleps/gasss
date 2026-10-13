@@ -141,6 +141,7 @@
     const aktif = cw.filter((w) => !w.arsip);
     $('total-saldo').textContent = rp(aktif.reduce((s, w) => s + w.saldo, 0));
     $('total-saldo').parentNode.classList.toggle('compact', !!activeGoal());
+    renderMood();
     const me = DEMO ? null : session();
     const first = me && (me.nama || me.email || '').split(/[\s@]/)[0];
     $('hello').textContent = 'Halo' + (first ? ', ' + first : '') + ' 👋';
@@ -451,7 +452,7 @@
 
   /** Kartu "Kata Gasss": komentar terakhir hari ini, atau saran sesuai zona posisi kas. */
   function renderSay(jatah) {
-    const z = L.currentZone(S.transactions, todayStr());
+    const z = mood();
     const k = META.komentar;
     const fresh = k && k.tanggal === todayStr() && k.text;
     const zona = fresh ? k.zona : (z ? z.zona : '');
@@ -471,8 +472,11 @@
       return g ? 'Tujuan udah ada, tinggal gas! Catat pemasukan & pengeluaranmu, nanti aku awasin 😏'
         : 'Halo! Aku Gasss. Bikin satu tujuan dulu, terus catat pengeluaranmu. Aku bakal ngingetin (dan ngomel) 😏';
     }
-    if (!z) return 'Belum ada pemasukan bulan ini. Catat gajianmu, nanti aku hitung jatah aman harianmu.';
-    const kas = Math.round(z.persen * 100) + '%';
+    if (!z.zona) return 'Belum ada pemasukan bulan ini. Catat gajianmu, nanti aku hitung jatah aman harianmu.';
+    const kas = z.persen === null ? 'sedikit' : Math.round(z.persen * 100) + '%';
+    if (z.alasan === 'target') {
+      return 'STOP dulu! Uang bebas bulan ini udah habis' + (g ? ', sisanya jatah ' + nama : '') + '. Tahan belanja sampai ada pemasukan lagi 😤';
+    }
     const kurang = p && p.kurangBulanIni > 0 ? rp(p.kurangBulanIni) : '';
     if (p && p.status === 'lewat') return 'Tenggat ' + nama + ' udah lewat. Santai, bukan gagal kok. Perpanjang tenggatnya di kartu tujuan ya 🙂';
     if (p && p.status === 'kejar' && (z.zona === 'hijau' || z.zona === 'kuning')) {
@@ -487,6 +491,30 @@
     }
   }
 
+  /** Suasana keuangan sekarang (zona posisi kas + jatah/target), dipakai warna latar & nada Gasss. */
+  function mood() {
+    const g = activeGoal();
+    return L.moodZone(S.transactions, todayStr(), { goalWallet: g ? g.dompet_id : '', porsiTujuan: g ? goalProg(g).targetBulanIni : 0 });
+  }
+
+  const MOOD_LABEL = { hijau: 'Aman', kuning: 'Mulai hati-hati', oranye: 'Menipis', merah: 'Bahaya' };
+  /** Warna latar seluruh aplikasi mengikuti suasana keuangan + label kecil di bagian atas. */
+  function renderMood() {
+    const m = mood();
+    const root = document.documentElement;
+    root.dataset.mood = m.zona || 'netral';
+    const el = $('mood-label');
+    if (!m.zona) { el.hidden = true; }
+    else {
+      const why = m.alasan === 'target' ? 'uang bebas bulan ini habis' : m.persen === null ? 'belum ada uang bulan ini' : 'sisa kas ' + Math.round(m.persen * 100) + '%';
+      el.hidden = false;
+      el.textContent = MOOD[m.zona] + ' ' + MOOD_LABEL[m.zona] + ' · ' + why;
+    }
+    // Warna bilah status browser / iPhone ikut latar.
+    const c = getComputedStyle(root).getPropertyValue('--page').trim();
+    document.querySelectorAll('meta[name="theme-color"]').forEach((x) => x.setAttribute('content', c));
+  }
+
   async function setKomentar(text, zona) {
     META.komentar = { text, zona: zona || '', tanggal: todayStr() };
     S.sayPop = true;
@@ -496,11 +524,11 @@
 
   /** Konteks untuk AI supaya komentarnya sesuai zona posisi kas & tujuan. */
   function aiContext() {
-    const z = L.currentZone(S.transactions, todayStr());
+    const z = mood();
     const g = activeGoal();
     const p = g && goalProg(g);
     const j = safeDaily();
-    return { zona: z ? z.zona : 'kuning', persenKas: z ? Math.round(z.persen * 100) : null,
+    return { zona: z.zona || 'kuning', alasan: z.alasan, persenKas: z.persen === null ? null : Math.round(z.persen * 100),
       tujuan: g ? g.nama : '', dompetTujuan: g ? walletName(g.dompet_id) : '', sisa: p ? p.sisa : null,
       tenggat: g ? g.tenggat : '', status: p ? STATUS[p.status].label : '', jatahHarian: j ? Math.max(0, j.sisaHariIni) : null };
   }
@@ -509,15 +537,15 @@
   function afterRecord(saved, komentar) {
     const g = activeGoal();
     const p = g ? goalProg(g) : null;
-    const z = L.currentZone(S.transactions, todayStr());
+    const z = mood();
     const gw = g ? g.dompet_id : '';
     const sum = (list) => list.reduce((s, t) => s + t.nominal, 0);
     const keluar = sum(saved.filter((t) => t.jenis === 'keluar' && t.dompet_id !== gw));
     const keTujuan = sum(saved.filter((t) => t.jenis === 'pindah' && gw && t.dompet_tujuan_id === gw));
     const days = g ? L.goalDelayDays(p, keTujuan || keluar) : null;
     const text = komentar ? L.fillDays(komentar, days)
-      : L.localComment({ saved, zona: z ? z.zona : 'kuning', persenKas: z ? z.persen : null, goalName: g ? g.nama : '', goalWallet: gw, prog: p });
-    if (text) setKomentar(text, z ? z.zona : 'kuning');
+      : L.localComment({ saved, zona: z.zona || 'kuning', alasan: z.alasan, persenKas: z.persen, goalName: g ? g.nama : '', goalWallet: gw, prog: p });
+    if (text) setKomentar(text, z.zona || 'kuning');
     const masuk = saved.filter((t) => t.jenis === 'masuk' && t.kategori !== L.KATEGORI_SALDO_AWAL && t.dompet_id !== gw);
     if (g && p.kurangBulanIni > 0 && masuk.length) {
       setTimeout(() => {

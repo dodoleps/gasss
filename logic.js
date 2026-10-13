@@ -301,6 +301,23 @@
     return { zona: cashZone(p), persen: p };
   }
 
+  const ZONE_ORDER = ['hijau', 'kuning', 'oranye', 'merah'];
+  /**
+   * "Suasana" keuangan untuk warna latar & nada Gasss: zona posisi kas, tapi langsung merah kalau
+   * uang bebas bulan ini (termasuk belanja hari ini) sudah habis, artinya porsi tujuan/tagihan terancam
+   * walau kas masih terlihat banyak. Uang masuk lagi -> zona membaik dengan sendirinya.
+   * opts sama dengan safeDaily. Hasil { zona (null = belum ada data), alasan: 'kas'|'target'|'kosong', persen, jatah }.
+   */
+  function moodZone(txs, today, opts) {
+    const z = currentZone(txs, today);
+    const j = safeDaily(txs, today, opts);
+    if (!z && !j) return { zona: null, alasan: 'kosong', persen: null, jatah: null };
+    let idx = z ? ZONE_ORDER.indexOf(z.zona) : 1;
+    let alasan = 'kas';
+    if (j && j.bebas - j.terpakai <= 0) { idx = 3; alasan = 'target'; }
+    return { zona: ZONE_ORDER[idx], alasan, persen: z ? z.persen : null, jatah: j };
+  }
+
   // ---------- Komentar Gasss tanpa AI (mode demo / AI tidak menjawab) ----------
   // Galak tapi sayang: makin tegas saat kas menipis, tanpa menghina. Hanya soal kebiasaan belanja & menabung.
   const COMMENTS = {
@@ -310,6 +327,9 @@
       oranye: ['{ket} {rp}? Hmm. {goal} jadi mundur {hari}. Rem dikit, bos ✋', 'Kas tinggal {kas}. {ket} lagi? Tahan dulu yang nggak penting 😤'],
       merah: ['HEH! {ket} {rp}?! Kas tinggal {kas}, {goal} mundur {hari}! Aku galak karena sayang 😤🔥', 'STOP dulu belanjanya! Kas tinggal {kas}. Mode survival ON, {goal} jangan dikorbanin 🆘'],
     },
+    // Kas masih kelihatan banyak, tapi uang bebas bulan ini sudah habis.
+    target: ['HEH! {ket} {rp}?! Uang bebas bulan ini udah habis, {goal} mundur {hari}! Aku galak karena sayang 😤🔥',
+      'STOP! Jatah bulan ini udah ludes. {ket} {rp} itu jatahnya {goal} 😤'],
     masuk: ['Cuan masuk {rp}! Sisihkan dulu buat {goal} sebelum khilaf 💸', 'Mantap, {rp} masuk! Jatah {goal} duluan ya, baru jajan 😉'],
     tujuan: ['Gasss! {rp} masuk ke {goal}, maju {hari} lebih dekat 🚀', 'Keren! {goal} makin dekat, {rp} sudah disisihkan 💪'],
   };
@@ -333,7 +353,7 @@
     else if (keluar.length) {
       n = sum(keluar);
       ket = keluar.length === 1 ? (keluar[0].keterangan || keluar[0].kategori) : keluar.length + ' pengeluaran';
-      tpl = pick(COMMENTS.keluar[c.zona || 'kuning']);
+      tpl = pick(c.alasan === 'target' ? COMMENTS.target : COMMENTS.keluar[c.zona || 'kuning']);
     } else if (masuk.length) { n = sum(masuk); tpl = pick(COMMENTS.masuk); }
     else return '';
     return tpl.replace('{ket}', ket).replace('{rp}', rp(n)).replace('{goal}', goal).replace('{hari}', hariTxt(n))
@@ -566,7 +586,7 @@
 
   const api = { GOAL_TEMPLATES, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
-    daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, localComment, fillDays, planDemo, cleanPlan };
+    daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.HBLogic = api;
 })(this);
