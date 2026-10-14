@@ -132,7 +132,7 @@
   function walletEmoji(nama) {
     const n = String(nama).toLowerCase();
     const rules = [[/utama|harian|dompet/, '💳'], [/makan|jajan|kopi|food|dapur/, '🍜'], [/bensin|motor|mobil|transport|ojek|bbm/, '⛽'],
-      [/tabung|nabung|saving|invest/, '🐷'], [/darurat|cadangan/, '🛟'], [/belanja|bulanan|groceries/, '🛒'],
+      [/tabung|nabung|saving|invest/, '💰'], [/darurat|cadangan/, '🛟'], [/belanja|bulanan|groceries/, '🛒'],
       [/tagihan|listrik|air|internet|pulsa|cicilan|kos|sewa/, '🧾'], [/sekolah|kuliah|pendidikan|anak|spp/, '🎓'],
       [/liburan|jalan|travel|hiburan|nonton/, '🏖️'], [/sehat|obat|dokter/, '💊'], [/zakat|sedekah|amal|infak/, '🤲'],
       [/hadiah|kado|arisan/, '🎁'], [/rumah|renov/, '🏠'], [/pet|kucing|anjing/, '🐾']];

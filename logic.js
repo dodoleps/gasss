@@ -625,7 +625,7 @@
     { key: 'nikah', contohEn: 'A simple wedding', label: 'Nikah', emoji: '💍', contoh: 'Biaya menikah sederhana', bulan: 18,
       re: /nikah|menikah|wedding|lamaran|resepsi|tunangan/,
       rincian: [['Lamaran & seserahan', 10000000], ['Gedung & katering', 40000000], ['Busana & rias', 8000000], ['Dokumentasi', 5000000], ['Undangan & suvenir', 4000000]] },
-    { key: 'saving', contohEn: 'Save for a motorbike down payment', label: 'Saving', emoji: '🐷', contoh: 'Tabungan DP motor', bulan: 12,
+    { key: 'saving', contohEn: 'Save for a motorbike down payment', label: 'Saving', emoji: '💰', contoh: 'Tabungan DP motor', bulan: 12,
       re: /tabung|nabung|saving|motor|mobil|kendaraan|rumah|dp|renovasi|properti/,
       rincian: [['Target tabungan', 10000000]] },
     { key: 'sport', contohEn: 'Run a half marathon race', label: 'Sport', emoji: '🏃', contoh: 'Ikut race lari half marathon', bulan: 8,
@@ -656,7 +656,7 @@
     { key: 'gadget', label: 'Gadget', emoji: '🔋' },
     { key: 'ibadah', label: 'Ibadah', emoji: '🕋' },
     { key: 'nikah', label: 'Nikah', emoji: '💒' },
-    { key: 'saving', label: 'Saving', emoji: '🐷' },
+    { key: 'saving', label: 'Saving', emoji: '💰' },
     { key: 'sport', label: 'Sport', emoji: '🏃' },
     { key: 'darurat', label: 'Darurat', emoji: '🛡️' },
     { key: 'event', label: 'Event', emoji: '🎉' },
@@ -698,6 +698,9 @@
       catatan: 'Mode demo: angka di atas perkiraan kasar. Koreksi sesuai kebutuhanmu ya.' }, today);
   }
 
+  /** Ikon babi tidak dipakai di aplikasi (diganti kantong uang), termasuk dari jawaban AI & data lama. */
+  function cleanEmoji(e) { return String(e || '').replace(/🐷|🐖|🐽|🐗/gu, '💰'); }
+
   /** Rapikan rencana tujuan (dari AI atau demo). Tenggat minimal besok; target = jumlah rincian kalau ada. */
   function cleanPlan(p, today) {
     const rincian = (Array.isArray(p.rincian) ? p.rincian : []).slice(0, 12)
@@ -710,7 +713,7 @@
       const d = new Date(y, m - 1 + 6, 1);
       tenggat = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
     }
-    const emoji = Array.from(String(p.emoji || '').trim()).slice(0, 4).join('') || '🎯';
+    const emoji = Array.from(cleanEmoji(p.emoji).trim()).slice(0, 4).join('') || '🎯';
     const nama = String(p.nama || '').trim().slice(0, 60) || 'Tujuanku';
     const tema = validTheme(normalizeTheme(p.tema)) ? normalizeTheme(p.tema) : guessTheme(nama + ' ' + (p.transkrip || ''), emoji);
     return { nama, emoji, tema, tenggat, rincian,
@@ -720,7 +723,7 @@
 
   const api = { CASH_LINES_EN, LEGACY_THEME, normalizeTheme, CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
-    daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
+    cleanEmoji, daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.HBLogic = api;
 })(this);

@@ -99,7 +99,7 @@ HBI18n.add({
   '💡 Simpan ide tujuan': '💡 Save a goal idea', '🎯 Mau mewujudkan apa?': '🎯 What do you want to make happen?',
   'Ceritakan tujuan & kapan, mis. “ikut Jakarta Marathon Juni 2027”. AI bikinin rincian biayanya.': 'Tell me the goal & when, e.g. “run the Jakarta Marathon in June 2027”. AI breaks down the costs.',
   'Tujuanku…': 'My goal…', 'Ceritakan lewat suara': 'Tell it by voice', 'Atau pilih template': 'Or pick a template',
-  '✈️ Traveling': '✈️ Traveling', '📱 Gadget': '📱 Gadget', '🕋 Ibadah': '🕋 Worship', '💍 Nikah': '💍 Wedding', '🐷 Saving': '🐷 Saving',
+  '✈️ Traveling': '✈️ Traveling', '📱 Gadget': '📱 Gadget', '🕋 Ibadah': '🕋 Worship', '💍 Nikah': '💍 Wedding', '💰 Saving': '💰 Saving',
   '🏃 Sport': '🏃 Sport', '🛡️ Darurat': '🛡️ Emergency', '🎉 Event': '🎉 Event', '🔋 Gadget': '🔋 Gadget', '💒 Nikah': '💒 Wedding', '⛰️ Umum': '⛰️ General',
   'AI sedang menyusun rincian biaya…': 'AI is breaking down the costs…', 'AI sedang menyusun rincian biaya… {n} dtk': 'AI is breaking down the costs… {n}s',
   'Oke! Buat tujuan kapan saja dari Beranda.': 'Okay! Create a goal anytime from Home.', 'Ceritakan dulu tujuanmu, atau pilih template': 'Tell me your goal first, or pick a template',
@@ -315,7 +315,7 @@ HBI18n.add({
   'Google Sheets API belum diaktifkan oleh pemilik aplikasi.': 'The Google Sheets API hasn\'t been enabled by the app owner.', 'Google menolak permintaan: {e}': 'Google rejected the request: {e}',
 
   // ---------- Kartu tujuan bergambar ----------
-  'START': 'START', 'BERANGKAT': 'DEPART', 'TUJUAN': 'DESTINATION',
+  'START': 'START', 'BERANGKAT': 'DEPART', 'TUJUAN': 'DESTINATION', 'FINISH': 'FINISH',
 
   // ---------- Tutorial ----------
   'Dari {x}': 'From {x}',

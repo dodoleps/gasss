@@ -103,7 +103,7 @@
     const rincian = (Array.isArray(g.rincian) ? g.rincian : []).map((r) => ({ nama: String(r.nama || '').trim().slice(0, 60),
       nominal: Math.round(Number(r.nominal)) || 0 })).filter((r) => r.nama && r.nominal > 0).slice(0, 20);
     const tema = L.validTheme(L.normalizeTheme(g.tema)) ? L.normalizeTheme(g.tema) : L.guessTheme(nama, g.emoji);
-    return { nama, emoji: Array.from(String(g.emoji || '🎯')).slice(0, 4).join(''), tema, target, tenggat: g.tenggat, rincian,
+    return { nama, emoji: Array.from(L.cleanEmoji(g.emoji || '🎯')).slice(0, 4).join(''), tema, target, tenggat: g.tenggat, rincian,
       catatan: String(g.catatan || '').slice(0, 300) };
   }
   /** Nama dompet tujuan = nama tujuan; ditambah " (tujuan)" kalau sudah dipakai dompet lain. */
@@ -133,7 +133,7 @@
     if (!g || !g.id || !g.nama) return null;
     let rincian = g.rincian;
     if (typeof rincian === 'string') { try { rincian = JSON.parse(rincian || '[]'); } catch (e) { rincian = []; } }
-    return { id: String(g.id), nama: String(g.nama), emoji: String(g.emoji || '🎯'), tema: L.validTheme(L.normalizeTheme(g.tema)) ? L.normalizeTheme(g.tema) : L.guessTheme(g.nama, g.emoji), target: Number(g.target) || 0,
+    return { id: String(g.id), nama: String(g.nama), emoji: L.cleanEmoji(g.emoji || '🎯'), tema: L.validTheme(L.normalizeTheme(g.tema)) ? L.normalizeTheme(g.tema) : L.guessTheme(g.nama, g.emoji), target: Number(g.target) || 0,
       tenggat: String(g.tenggat || ''), mulai: String(g.mulai || today()), awal: Number(g.awal) || 0, dompet_id: String(g.dompet_id || ''),
       rincian: Array.isArray(rincian) ? rincian : [], catatan: String(g.catatan || ''),
       status: ['aktif', 'ide', 'tercapai'].indexOf(g.status) >= 0 ? g.status : 'ide', dibuat: String(g.dibuat || now()), tercapai: String(g.tercapai || '') };
@@ -314,6 +314,7 @@
       if (!db) db = fresh();
       db.meta = db.meta || {};
       db.goals = db.goals || [];
+      db.goals.forEach((g) => { g.emoji = L.cleanEmoji(g.emoji) || '🎯'; });
       await persist();
       try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* abaikan */ }
     },

@@ -297,7 +297,7 @@ function buildPlanPrompt(isAudio) {
     '',
     'Aturan:',
     '- nama: nama tujuan singkat & jelas (maks. 40 huruf), huruf awal kapital, mis. "Jakarta Marathon 2027", "Liburan ke Bali".',
-    '- emoji: satu emoji yang cocok.',
+    '- emoji: satu emoji yang cocok (JANGAN emoji babi; untuk tabungan pakai 💰).',
     '- tenggat: format YYYY-MM-DD, kapan uang harus sudah terkumpul. Jika pengguna menyebut bulan acara (mis. "Juni 2027"),',
     '  pakai tanggal 1 bulan itu, kecuali tanggal pastinya disebut. Jika tidak menyebut waktu, pilih perkiraan yang masuk akal',
     '  (umumnya 3–12 bulan dari hari ini). Tenggat harus setelah hari ini.',
