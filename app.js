@@ -248,80 +248,96 @@
 
   // ---------- Grafik posisi kas ----------
 
-  const ZONES = {
-    hijau: { icon: '☁️', label: 'Lagi di atas awan king, gas sisihkan buat tujuan' },
-    kuning: { icon: '😎', label: 'Nikmati hidup dengan lowkey' },
-    oranye: { icon: '👀', label: 'Waspada king, tetap jaga pengeluaran' },
-    merah: { icon: '🆘', label: 'Lagi mode survival, jangan banyak gaya' },
-  };
+  const ZONE_ICON = { hijau: '☁️', kuning: '😎', oranye: '👀', merah: '🆘' };
+  /** Warna tegas tiap zona untuk garis grafik (hijau di atas -> merah di bawah). */
+  const ZONE_HEX = { hijau: '#22c55e', kuning: '#eab308', oranye: '#f97316', merah: '#ef4444' };
   const pct = (p) => Math.round(p * 100) + '%';
+  /** Kalimat Gen Z untuk zona; berganti per hari, bisa digeser dengan mengetuk judul. */
+  const zoneText = (p, seed) => { const z = L.cashZone(p); return { zona: z, icon: ZONE_ICON[z], label: L.cashLine(z, (seed || 0) + (S.lineShift || 0)) }; };
+  /** Kurva halus melalui titik-titik [x, y]. */
+  const smoothPath = (pts) => pts.map((p, i) => {
+    if (!i) return 'M' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
+    const a = pts[i - 1], t = (p[0] - a[0]) / 2;
+    return 'C' + (a[0] + t).toFixed(1) + ' ' + a[1].toFixed(1) + ',' + (p[0] - t).toFixed(1) + ' ' + p[1].toFixed(1) + ',' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
+  }).join(' ');
+
+  /** Data posisi kas bulan laporan: titik harian yang sudah punya data. */
+  function cashData(m) {
+    const cp = L.cashPosition(S.transactions, m, m === thisMonth() ? todayStr() : null);
+    const pts = m > thisMonth() ? [] : cp.days.map((d, i) => ({ ...d, i, d: i + 1 })).filter((d) => d.persen !== null);
+    const [yy, mm] = m.split('-').map(Number);
+    return { pts, daysInMonth: new Date(yy, mm, 0).getDate() };
+  }
 
   function renderCash() {
     const m = S.reportMonth;
     const box = $('r-cash'), head = $('r-cash-head'), tip = $('r-cash-tip');
     tip.hidden = true;
-    const cp = L.cashPosition(S.transactions, m, m === thisMonth() ? todayStr() : null);
-    const pts = m > thisMonth() ? [] : cp.days.map((d, i) => ({ ...d, i })).filter((d) => d.persen !== null);
+    const { pts, daysInMonth } = cashData(m);
+    $('btn-share-cash').hidden = !pts.length;
     if (!pts.length) {
       head.innerHTML = '';
       box.innerHTML = '<div class="empty">Belum ada pemasukan atau saldo di bulan ini.</div>';
       return;
     }
     const last = pts[pts.length - 1];
-    const z = ZONES[L.cashZone(last.persen)];
-    head.innerHTML = '<span class="cash-zone zone-' + L.cashZone(last.persen) + '">' + z.icon + ' ' + pct(last.persen) + '</span>' +
-      '<span class="cash-zone-text"><b>' + esc(z.label) + '</b><br><small>' +
-      (m === thisMonth() ? 'Posisi hari ini' : 'Posisi akhir bulan') + ' · saldo ' + rp(last.saldo) + '</small></span>';
+    const drawHead = () => {
+      const z = zoneText(last.persen, last.d);
+      head.innerHTML = '<span class="cash-big" style="color:' + ZONE_HEX[z.zona] + '">' + pct(last.persen) + '</span>' +
+        '<button type="button" class="cash-line-btn" id="cash-line-next" aria-label="Ganti kalimat"><b>' + z.icon + ' ' + esc(z.label) + '</b><small>' +
+        (m === thisMonth() ? 'Hari ini' : 'Akhir bulan') + ' · saldo ' + rp(last.saldo) + ' 🔄</small></button>';
+      $('cash-line-next').onclick = () => { S.lineShift = (S.lineShift || 0) + 1; drawHead(); };
+    };
+    drawHead();
 
-    const [yy, mm] = m.split('-').map(Number);
-    const daysInMonth = new Date(yy, mm, 0).getDate();
-    const W = Math.max(280, box.clientWidth || 320), H = 220;
-    const L0 = 38, R0 = 10, T0 = 8, B0 = 24;
-    const pw = W - L0 - R0, ph = H - T0 - B0;
-    const x = (i) => L0 + (daysInMonth > 1 ? (i / (daysInMonth - 1)) * pw : 0);
+    const W = 340, H = 200, L0 = 32, R0 = 10, T0 = 12, B0 = 22, pw = W - L0 - R0, ph = H - T0 - B0;
+    const x = (d) => L0 + (daysInMonth > 1 ? (d - 1) / (daysInMonth - 1) : 0) * pw;
     const y = (p) => T0 + (1 - p) * ph;
-    const band = (key, top, bottom) =>
-      '<rect x="' + L0 + '" y="' + y(top) + '" width="' + pw + '" height="' + (y(bottom) - y(top)) + '" fill="url(#g-' + key + ')"/>';
-    const grad = (key) => '<linearGradient id="g-' + key + '" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0" stop-color="var(--zone-' + key + ')" stop-opacity=".75"/>' +
-      '<stop offset="1" stop-color="var(--zone-' + key + ')" stop-opacity=".25"/></linearGradient>';
-    const ticksY = [1].concat(L.CASH_LEVELS, [0]).map((p) =>
-      '<text class="axis" x="' + (L0 - 6) + '" y="' + (y(p) + 4) + '" text-anchor="end">' + pct(p) + '</text>').join('');
-    const ticksX = [1, 8, 15, 22, daysInMonth].map((d) =>
-      '<text class="axis" x="' + x(d - 1) + '" y="' + (H - 6) + '" text-anchor="middle">' + d + '</text>').join('');
-    const line = pts.map((d, k) => (k ? 'L' : 'M') + x(d.i).toFixed(1) + ' ' + y(d.persen).toFixed(1)).join(' ');
-    box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Grafik posisi kas ' +
-      esc(fmtMonth(m)) + ', terakhir ' + pct(last.persen) + '">' +
-      '<defs>' + Object.keys(ZONES).map(grad).join('') + '</defs>' +
-      band('hijau', 1, 0.75) + band('kuning', 0.75, 0.5) + band('oranye', 0.5, 0.25) + band('merah', 0.25, 0) +
-      ticksY + ticksX +
-      '<path class="cash-line" d="' + line + '"/>' +
+    const xy = pts.map((d) => [x(d.d), y(d.persen)]);
+    const line = smoothPath(xy);
+    const lx = xy[xy.length - 1];
+    const stops = [[0, 'hijau'], [0.25, 'hijau'], [0.4, 'kuning'], [0.62, 'oranye'], [1, 'merah']]
+      .map(([o, z]) => '<stop offset="' + o + '" stop-color="' + ZONE_HEX[z] + '"/>').join('');
+    const grid = [0, 0.25, 0.5, 0.75, 1].map((p) => '<line class="cash-grid" x1="' + L0 + '" x2="' + (W - R0) + '" y1="' + y(p) + '" y2="' + y(p) + '"' +
+      (p > 0 && p < 1 ? ' stroke-dasharray="3 4"' : '') + '/><text class="axis" x="' + (L0 - 6) + '" y="' + (y(p) + 3.5) + '" text-anchor="end">' + pct(p) + '</text>').join('');
+    const ticksX = [1, 8, 15, 22, daysInMonth].map((d) => '<text class="axis" x="' + x(d) + '" y="' + (H - 6) + '" text-anchor="middle">' + d + '</text>').join('');
+    const lastHex = ZONE_HEX[L.cashZone(last.persen)];
+    box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Grafik posisi kas ' + esc(fmtMonth(m)) + ', terakhir ' + pct(last.persen) + '">' +
+      '<defs><linearGradient id="cash-zone" gradientUnits="userSpaceOnUse" x1="0" y1="' + y(1) + '" x2="0" y2="' + y(0) + '">' + stops + '</linearGradient>' +
+      '<linearGradient id="cash-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+      '<mask id="cash-mask"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="url(#cash-fade)"/></mask></defs>' +
+      grid + ticksX +
+      '<path d="' + line + ' L' + lx[0].toFixed(1) + ' ' + y(0) + ' L' + xy[0][0].toFixed(1) + ' ' + y(0) + ' Z" fill="url(#cash-zone)" mask="url(#cash-mask)"/>' +
+      '<path class="cash-curve" d="' + line + '" fill="none" stroke="url(#cash-zone)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      (lx[0] < x(daysInMonth) - 1 ? '<line class="cash-rest" x1="' + lx[0] + '" x2="' + x(daysInMonth) + '" y1="' + y(0) + '" y2="' + y(0) + '"/>' : '') +
       '<line class="cross" id="cash-cross" x1="0" x2="0" y1="' + T0 + '" y2="' + (T0 + ph) + '" visibility="hidden"/>' +
-      '<circle class="cash-dot" id="cash-dot" r="5" cx="' + x(last.i) + '" cy="' + y(last.persen) + '"/>' +
-      '<rect id="cash-hit" x="' + L0 + '" y="0" width="' + pw + '" height="' + (H - B0) + '" fill="transparent"/>' +
-      '</svg>';
+      '<circle id="cash-halo" r="11" cx="' + lx[0] + '" cy="' + lx[1] + '" fill="' + lastHex + '" opacity=".18"/>' +
+      '<circle class="cash-dot" id="cash-dot" r="5" cx="' + lx[0] + '" cy="' + lx[1] + '" fill="' + lastHex + '"/>' +
+      '<rect id="cash-hit" x="' + L0 + '" y="0" width="' + pw + '" height="' + (H - B0) + '" fill="transparent"/></svg>';
+    const curve = box.querySelector('.cash-curve');
+    curve.style.setProperty('--len', Math.ceil(curve.getTotalLength()));
 
     // Ketuk / geser di grafik untuk melihat rincian hari itu.
-    const hit = box.querySelector('#cash-hit'), cross = box.querySelector('#cash-cross'), dot = box.querySelector('#cash-dot');
+    const svg = box.querySelector('svg'), hit = box.querySelector('#cash-hit'), cross = box.querySelector('#cash-cross');
+    const dot = box.querySelector('#cash-dot'), halo = box.querySelector('#cash-halo');
+    const place = (cx, cy, hex) => { [dot, halo].forEach((c) => { c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('fill', hex); }); };
     const show = (ev) => {
-      const r = box.querySelector('svg').getBoundingClientRect();
-      const px = ev.clientX - r.left;
+      const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) / r.width * W;
       let best = pts[0];
-      pts.forEach((d) => { if (Math.abs(x(d.i) - px) < Math.abs(x(best.i) - px)) best = d; });
-      cross.setAttribute('x1', x(best.i)); cross.setAttribute('x2', x(best.i)); cross.setAttribute('visibility', 'visible');
-      dot.setAttribute('cx', x(best.i)); dot.setAttribute('cy', y(best.persen));
+      pts.forEach((d) => { if (Math.abs(x(d.d) - sx) < Math.abs(x(best.d) - sx)) best = d; });
+      const bx = x(best.d), by = y(best.persen), bz = zoneText(best.persen, best.d);
+      cross.setAttribute('x1', bx); cross.setAttribute('x2', bx); cross.setAttribute('visibility', 'visible');
+      place(bx, by, ZONE_HEX[bz.zona]);
       tip.replaceChildren();
       const add = (tag, text, cls) => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; tip.appendChild(e); };
-      const bz = ZONES[L.cashZone(best.persen)];
-      add('strong', bz.icon + ' ' + pct(best.persen));
+      add('strong', bz.icon + ' ' + pct(best.persen) + ' · ' + fmtDay(best.tanggal));
       add('div', bz.label, 'tip-zone');
-      add('div', fmtDay(best.tanggal), 'tip-date');
-      add('div', 'Saldo ' + rp(best.saldo));
-      add('div', 'Pengeluaran hari itu ' + rp(best.keluar));
-      if (best.masuk) add('div', 'Pemasukan ' + rp(best.masuk));
+      add('div', 'Saldo ' + rp(best.saldo) + ' · keluar ' + rpShort(best.keluar) + (best.masuk ? ' · masuk ' + rpShort(best.masuk) : ''));
       tip.hidden = false;
-      const tx = Math.min(Math.max(x(best.i) - tip.offsetWidth / 2, 4), W - tip.offsetWidth - 4);
-      tip.style.left = tx + 'px';
+      const cr = box.parentNode.getBoundingClientRect();
+      const left = r.left - cr.left + bx / W * r.width;
+      tip.style.left = Math.min(Math.max(left - tip.offsetWidth / 2, 4), cr.width - tip.offsetWidth - 4) + 'px';
+      tip.style.top = Math.max(4, r.top - cr.top + by / H * r.height - tip.offsetHeight - 14) + 'px';
     };
     hit.addEventListener('pointerdown', show);
     hit.addEventListener('pointermove', show);
@@ -329,7 +345,7 @@
       if (ev.pointerType !== 'mouse') return; // di HP rincian tetap tampil setelah diketuk
       tip.hidden = true;
       cross.setAttribute('visibility', 'hidden');
-      dot.setAttribute('cx', x(last.i)); dot.setAttribute('cy', y(last.persen));
+      place(lx[0], lx[1], lastHex);
     });
   }
 
@@ -1845,35 +1861,99 @@
       return;
     }
     const short = (ym) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short' }); };
-    const max = Math.max(...c.bulan.map((b) => b.keluar), 1);
     let verdict;
     if (c.persen === null) verdict = 'Belum ada data pengeluaran di bulan-bulan sebelumnya.';
     else if (Math.abs(c.persen) < 0.05) verdict = '⚖️ Pengeluaran ' + fmtMonth(cur.bulan) + ' kurang lebih sama dengan rata-rata sebelumnya.';
     else if (c.persen < 0) verdict = '🎉 Lebih hemat <b>' + Math.round(-c.persen * 100) + '%</b> (' + rp(-c.selisih) + ') dibanding rata-rata ' + c.dibanding + ' bulan sebelumnya.';
     else verdict = '🔥 Lebih boros <b>' + Math.round(c.persen * 100) + '%</b> (' + rp(c.selisih) + ') dibanding rata-rata ' + c.dibanding + ' bulan sebelumnya.';
     const partial = cur.bulan === thisMonth() ? '<p class="cmp-note">Bulan ini baru sampai tanggal ' + Number(todayStr().slice(8)) + ', jadi angkanya masih bisa bertambah.</p>' : '';
-    // Garis putus-putus = rata-rata bulan-bulan sebelumnya (digambar di dalam tiap kolom supaya posisinya tepat).
-    const avgPct = c.rataSebelum > 0 ? Math.round((c.rataSebelum / max) * 1000) / 10 : null;
+    // Batang memudar ke bawah; bulan laporan berwarna utama, bulan sebelumnya abu. Garis putus-putus = rata-rata.
+    const W = 340, H = 190, L0 = 8, R0 = 8, T0 = 26, B0 = 24, pw = W - L0 - R0, ph = H - T0 - B0;
+    const max = Math.max(...c.bulan.map((b) => b.keluar), c.rataSebelum, 1) * 1.1;
+    const yv = (v) => T0 + (1 - v / max) * ph;
+    const slot = pw / c.bulan.length, bw = Math.min(54, slot * 0.56);
     const bars = c.bulan.map((b, i) => {
-      const h = Math.round((b.keluar / max) * 100);
-      const last = i === c.bulan.length - 1;
-      return '<div class="cmp-col' + (last ? ' cur' : '') + (b.adaData ? '' : ' nodata') + '" title="' + esc(fmtMonth(b.bulan)) + ': ' +
-        (b.adaData ? rp(b.keluar) : 'belum mulai mencatat') + '">' +
-        '<span class="cmp-val">' + (b.adaData ? rpShort(b.keluar) : '–') + '</span>' +
-        '<div class="cmp-track"><i style="height:' + Math.max(h, b.keluar ? 3 : 0) + '%"></i>' +
-        (avgPct !== null ? '<b class="cmp-avg" style="bottom:' + avgPct + '%"></b>' : '') + '</div>' +
-        '<span class="cmp-label">' + esc(short(b.bulan)) + '</span></div>';
+      const cx = L0 + slot * (i + 0.5), last = i === c.bulan.length - 1;
+      const label = '<text class="axis" x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle"' + (last ? ' style="font-weight:800;fill:var(--text)"' : '') + '>' + esc(short(b.bulan)) + '</text>';
+      if (!b.adaData || !b.keluar) return label + '<text class="axis" x="' + cx + '" y="' + (yv(0) - 8) + '" text-anchor="middle">–</text>';
+      const top = yv(b.keluar), rr = Math.min(8, (yv(0) - top) / 2);
+      const d = 'M' + (cx - bw / 2) + ' ' + yv(0) + ' V' + (top + rr) + ' Q' + (cx - bw / 2) + ' ' + top + ' ' + (cx - bw / 2 + rr) + ' ' + top +
+        ' H' + (cx + bw / 2 - rr) + ' Q' + (cx + bw / 2) + ' ' + top + ' ' + (cx + bw / 2) + ' ' + (top + rr) + ' V' + yv(0) + ' Z';
+      return '<path class="cmp-bar" style="animation-delay:' + (i * 0.08) + 's" d="' + d + '" fill="url(#' + (last ? 'cmp-cur' : 'cmp-old') + ')"/>' +
+        '<rect x="' + (cx - bw / 2) + '" y="' + top + '" width="' + bw + '" height="3" rx="1.5" fill="var(' + (last ? '--brand' : '--cmp-old') + ')"/>' +
+        '<text class="axis" x="' + cx + '" y="' + (top - 8) + '" text-anchor="middle" style="font-size:11px;font-weight:' + (last ? 800 : 600) + ';fill:var(' + (last ? '--text' : '--muted') + ')">' +
+        rpShort(b.keluar) + '</text>' + label +
+        '<rect class="cmp-hit" data-i="' + i + '" x="' + (cx - slot / 2) + '" y="0" width="' + slot + '" height="' + (H - B0) + '" fill="transparent"/>';
     }).join('');
+    const fade = (id, color) => '<linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + color + '"/>' +
+      '<stop offset=".7" stop-color="' + color + '" stop-opacity=".35"/><stop offset="1" stop-color="' + color + '" stop-opacity=".04"/></linearGradient>';
+    const css = getComputedStyle(document.documentElement);
+    const avgY = c.rataSebelum > 0 ? yv(c.rataSebelum) : null;
+    const chart = '<div class="cmp-svg"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Pengeluaran ' + c.bulan.length + ' bulan terakhir">' +
+      '<defs>' + fade('cmp-cur', css.getPropertyValue('--brand').trim()) + fade('cmp-old', css.getPropertyValue('--cmp-old').trim() || '#b9c6c2') + '</defs>' +
+      '<line class="cash-grid" x1="' + L0 + '" x2="' + (W - R0) + '" y1="' + yv(0) + '" y2="' + yv(0) + '"/>' + bars +
+      (avgY !== null ? '<line x1="' + L0 + '" x2="' + (W - R0) + '" y1="' + avgY + '" y2="' + avgY + '" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>' +
+        '' : '') +
+      '</svg><div class="cash-tip" id="cmp-tip" hidden></div></div>' +
+      (avgY !== null ? '<p class="cmp-legend"><i></i>rata-rata ' + c.dibanding + ' bulan sebelumnya: ' + rp(c.rataSebelum) + '</p>' : '');
     const rows = c.kategori.slice(0, 8).map((k) => {
       const up = k.selisih > 0.5, down = k.selisih < -0.5;
       return '<tr><td>' + (ICON[k.kategori] || '•') + ' ' + esc(k.kategori) + '</td><td>' + rpShort(k.ini) + '</td><td>' + rpShort(k.rata) + '</td>' +
         '<td class="' + (up ? 'c-out' : down ? 'c-in' : '') + '">' + (up ? '▲ ' : down ? '▼ ' : '') + rpShort(Math.abs(k.selisih)) + '</td></tr>';
     }).join('');
-    box.innerHTML = '<p class="cmp-verdict">' + verdict + '</p>' + partial +
-      '<div class="cmp-chart">' + bars + '</div>' +
-      (avgPct !== null ? '<p class="cmp-legend"><i></i>rata-rata ' + c.dibanding + ' bulan sebelumnya: ' + rp(c.rataSebelum) + '</p>' : '') +
+    box.innerHTML = '<p class="cmp-verdict">' + verdict + '</p>' + partial + chart +
       (c.persen === null ? '' : '<div class="cmp-table-wrap"><table class="stat-table cmp-table"><tr><th>Kategori</th><th>' + esc(short(cur.bulan)) +
-        '</th><th>Rata²</th><th>±</th></tr>' + rows + '</table></div>');
+        '</th><th>Rata²</th><th>±</th></tr>' + rows + '</table></div>') +
+      '<button class="share-cta" id="btn-share-cmp">📸 Bagikan perbandingan <small>ke story</small></button>';
+    $('btn-share-cmp').onclick = () => openShareChart('banding');
+    // Ketuk batang untuk rincian.
+    const tip = $('cmp-tip'), svg = box.querySelector('.cmp-svg svg');
+    box.querySelectorAll('.cmp-hit').forEach((h) => {
+      const show = () => {
+        const b = c.bulan[Number(h.dataset.i)], last = Number(h.dataset.i) === c.bulan.length - 1;
+        tip.replaceChildren();
+        const add = (tag, text) => { const e = document.createElement(tag); e.textContent = text; tip.appendChild(e); };
+        add('strong', fmtMonth(b.bulan));
+        add('div', 'Keluar ' + rp(b.keluar));
+        if (last && c.rataSebelum > 0) add('div', (b.keluar <= c.rataSebelum ? '▼ ' : '▲ ') + rpShort(Math.abs(b.keluar - c.rataSebelum)) + ' dari rata-rata');
+        tip.hidden = false;
+        const rb = svg.getBoundingClientRect(), hb = h.getBoundingClientRect(), wrap = svg.parentNode.getBoundingClientRect();
+        tip.style.left = Math.min(Math.max(hb.left - wrap.left + hb.width / 2 - tip.offsetWidth / 2, 4), wrap.width - tip.offsetWidth - 4) + 'px';
+        tip.style.top = Math.max(0, rb.height * 0.15 - tip.offsetHeight / 2) + 'px';
+      };
+      h.addEventListener('pointerdown', show);
+      h.addEventListener('pointerenter', show);
+      h.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') tip.hidden = true; });
+    });
+  }
+
+  /** Bagikan grafik posisi kas / perbandingan ke story (stiker transparan atau di atas foto). */
+  function openShareChart(kind) {
+    const m = S.reportMonth;
+    let data;
+    if (kind === 'kas') {
+      const { pts, daysInMonth } = cashData(m);
+      if (!pts.length) { toast('Belum ada data posisi kas di ' + fmtMonth(m) + '.'); return; }
+      const last = pts[pts.length - 1], z = zoneText(last.persen, last.d);
+      data = { bulanLabel: fmtMonth(m), days: daysInMonth, pts: pts.map((p) => ({ d: p.d, persen: p.persen })), persen: last.persen, saldo: last.saldo,
+        zona: z.zona, line: z.icon + ' ' + z.label, appName: APP_NAME };
+    } else {
+      const c = L.compareMonths(S.transactions, m, S.compareN || 3);
+      const short = (ym) => { const [y, mm] = ym.split('-').map(Number); return new Date(y, mm - 1, 1).toLocaleDateString('id-ID', { month: 'short' }); };
+      data = { bulanLabel: fmtMonth(m), bulan: c.bulan.map((b) => ({ label: short(b.bulan), keluar: b.adaData ? b.keluar : 0 })), rata: c.rataSebelum,
+        persen: c.persen, appName: APP_NAME };
+    }
+    const st = { hide: false, dark: false, photo: null, final: null, sticker: null, busy: 0 };
+    openSheet('<h3>📸 ' + (kind === 'kas' ? 'Posisi kas ' : 'Perbandingan ') + esc(fmtMonth(m)) + '</h3>' +
+      '<div class="sh-preview" id="sh-preview"><img id="sh-img" alt="Pratinjau stiker grafik"></div>' +
+      '<div class="sh-opts"><label class="sh-toggle"><input type="checkbox" id="sh-hide"> Sembunyikan nominal</label>' +
+      '<div class="seg seg-sm" id="sh-ink" style="margin:0"><button type="button" data-dark="0" class="on">Teks putih</button><button type="button" data-dark="1">Teks gelap</button></div>' +
+      '</div>' + sharePhotoAndButtons(), (el) => {
+      const redraw = shareRedraw(el, st, () => [data, { kind, dark: st.dark, photo: st.photo, hideAmount: st.hide }]);
+      el.querySelector('#sh-hide').onchange = (e) => { st.hide = e.target.checked; redraw(); };
+      bindShareControls(el, st, redraw, kind === 'kas' ? 'posisi-kas' : 'perbandingan', m, (kind === 'kas' ? 'Posisi kas ' : 'Perbandingan ') + fmtMonth(m));
+      redraw();
+    });
   }
 
   function rpShort(n) {
@@ -2257,7 +2337,7 @@
       dibuat: new Date().toLocaleString('id-ID'),
       ringkasan: L.monthSummary(S.transactions, m),
       totalSaldo: cw.reduce((s, w) => s + w.saldo, 0),
-      posisiKas: last ? { persen: pct(last.persen), label: ZONES[L.cashZone(last.persen)].label } : null,
+      posisiKas: last ? { persen: pct(last.persen), label: zoneText(last.persen, Number(String(last.tanggal).slice(8))).label } : null,
       dompet: activeWallets().map((w0) => { const w = cw.find((x) => x.id === w0.id); return { nama: w.nama, saldo: w.saldo, status: statusText[w.status] }; }),
       kategori: L.categoryReport(S.transactions, m).rows,
       transaksi: L.sortTx(S.transactions).filter((t) => L.monthOf(t.tanggal) === m).map((t) => ({
@@ -2326,6 +2406,7 @@
     $('btn-sheets-restore').onclick = () => withSheets('restore');
     $('btn-tutorial').onclick = showTutorial;
     $('btn-share-recap').onclick = openShareRecap;
+    $('btn-share-cash').onclick = () => openShareChart('kas');
     $('btn-share-hemat').onclick = () => openShareAchievement(S.reportMonth);
     $('btn-reset').onclick = startFresh;
     $('cmp-seg').onclick = (e) => { const b = e.target.closest('[data-n]'); if (b) { S.compareN = Number(b.dataset.n); renderCompare(); } };

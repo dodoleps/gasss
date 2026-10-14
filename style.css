@@ -708,3 +708,29 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .goal-name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; text-wrap: balance; }
 .goal-top { align-items: flex-start; }
 .goal-top .goal-chip { margin-top: 2px; }
+
+/* ============ Laporan: grafik bergradasi ============ */
+:root { --cmp-old: #b9c6c2; }
+@media (prefers-color-scheme: dark) { :root { --cmp-old: #45524e; } }
+.cash-head { align-items: center; gap: 12px; }
+.cash-big { font-size: 30px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.cash-line-btn { border: 0; background: none; padding: 0; text-align: left; color: inherit; font: inherit; display: grid; gap: 1px; min-width: 0; cursor: pointer; }
+.cash-line-btn b { font-size: 14px; line-height: 1.35; }
+.cash-line-btn small { font-size: 11.5px; color: var(--muted); }
+.cash-chart svg, .cmp-svg svg { display: block; width: 100%; height: auto; overflow: visible; }
+.cash-grid { stroke: var(--line); stroke-width: 1; }
+.cash-rest { stroke: var(--muted); stroke-opacity: .5; stroke-dasharray: 2 4; }
+.cash-dot { stroke: var(--card); stroke-width: 2.5; }
+.cash-tip { white-space: normal; width: max-content; max-width: 230px; z-index: 2; }
+.cash-tip .tip-zone { font-weight: 700; }
+.cmp-svg { position: relative; margin: 6px -2px 4px; touch-action: pan-y; }
+.cash-card .share-cta, .cmp-card .share-cta { margin-top: 12px; }
+@media (prefers-reduced-motion: no-preference) {
+  .cash-curve { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: cash-draw 1.3s ease-out .15s forwards; }
+  @keyframes cash-draw { to { stroke-dashoffset: 0; } }
+  .cmp-bar { transform-box: fill-box; transform-origin: bottom; animation: cmp-grow .8s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes cmp-grow { from { transform: scaleY(0); } }
+}
+.cmp-svg .axis { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.cmp-svg text { paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
+.cash-chart .axis { fill: var(--muted); }

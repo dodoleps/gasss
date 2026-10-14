@@ -293,6 +293,25 @@
       sumber: per[bulan].masuk >= rata ? 'bulan ini' : 'rata-rata', pengeluaran: keluar, sisaTagihan, porsiTujuan, hariSisa };
   }
 
+  // ---------- Kalimat posisi kas ala Gen Z ----------
+  // 6 per zona; tidak menghina dan tidak menyarankan produk investasi/pinjaman.
+  const CASH_LINES = {
+    hijau: ['Dompet lagi glowing, king ✨', 'Saldo aman, vibes-nya healing 🌿', 'Cuan masih full, slay terus 💅', 'Aman jaya, nggak ada drama 😎',
+      'Lagi di atas awan, jangan lupa nabung ☁️', 'Green flag banget kondisi kasmu 🟢'],
+    kuning: ['Nikmati hidup, tapi lowkey aja 😌', 'Masih oke, jangan FOMO ya 👀', 'Udah separuh jalan, rem jajan dikit 🙂', 'Santai tapi tetap mindful, bestie 🧘',
+      'Checkout boleh, asal nggak tiap hari 🛒', 'Vibes masih chill, jaga ritmenya ya 🎧'],
+    oranye: ['Waspada, dompet mulai kering 🫠', 'Red flag kecil nih, kurangin jajan ✋', 'Mode hemat on, no debat 🔒', 'Kas menipis, skip dulu kopi mahal ☕',
+      'Not the vibes, rem belanja dulu 😬', 'Tahan dulu checkout-nya, bestie 🛑'],
+    merah: ['Mode survival on, jangan banyak gaya 🆘', 'Dompet lagi sekarat, it\'s giving boncos 💀', 'Darurat! Puasa jajan sampai gajian 😤', 'Bestie, ini bukan waktunya healing 🚨',
+      'Kas kritis, masak sendiri dulu aja 🍳', 'Boncos alert, tahan semua checkout ⛔'],
+  };
+  /** Kalimat untuk zona & "benih" (mis. tanggal) — bergantian supaya tidak monoton. */
+  function cashLine(zona, seed) {
+    const list = CASH_LINES[zona] || CASH_LINES.kuning;
+    const n = Math.abs(Math.round(Number(seed) || 0));
+    return list[n % list.length];
+  }
+
   // ---------- Dompet per kategori & jatah konsumtif harian (sistem amplop) ----------
 
   /** Kategori pengeluaran yang dianggap konsumtif: memotong "jatah aman hari ini". */
@@ -656,7 +675,7 @@
       transkrip: String(p.transkrip || '').slice(0, 500) };
   }
 
-  const api = { KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
+  const api = { CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
     daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

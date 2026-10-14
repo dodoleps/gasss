@@ -279,6 +279,146 @@
     ctx.restore();
   }
 
+  const ZONE_HEX = { hijau: '#22c55e', kuning: '#eab308', oranye: '#f97316', merah: '#ef4444' };
+
+  /** Judul kecil berhuruf kapital + jarak, dipakai stiker grafik. */
+  function eyebrow(ctx, c, text, X, y) {
+    ctx.fillStyle = c.soft;
+    ctx.font = '700 ' + Math.round(40 * K) + 'px ' + FONT;
+    ctx.letterSpacing = Math.round(6 * K) + 'px';
+    ctx.fillText(text.toUpperCase(), X, y);
+    ctx.letterSpacing = '0px';
+  }
+
+  /**
+   * Stiker posisi kas: persen besar, kalimat zona, dan garis halus berwarna zona dengan area memudar.
+   * d = { bulanLabel, days, pts: [{ d, persen }], persen, saldo, zona, line, appName }
+   */
+  function drawCash(ctx, d, opts) {
+    const c = colors(opts);
+    const px = (n) => Math.round(n * K);
+    const font = (w, size) => w + ' ' + px(size) + 'px ' + FONT;
+    const X = MARGIN, R = W - MARGIN, cw = R - X;
+    const chartH = px(620);
+    const blockH = px(120) + px(190) + px(90) + (opts.hideAmount ? 0 : px(70)) + px(60) + chartH + px(110) + px(150);
+    let y = H - 140 - blockH;
+    ctx.save();
+    ctx.shadowColor = opts.dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = px(18);
+    ctx.textBaseline = 'alphabetic';
+    eyebrow(ctx, c, 'Posisi kas · ' + d.bulanLabel, X, y + px(40));
+    y += px(120);
+    ctx.fillStyle = c.ink; ctx.font = font(800, 150);
+    ctx.fillText(pct(d.persen), X, y + px(150));
+    y += px(190);
+    ctx.font = font(700, 50);
+    ctx.fillText(d.line, X, y + px(50), cw);
+    y += px(90);
+    if (!opts.hideAmount) { ctx.fillStyle = c.soft; ctx.font = font(600, 44); ctx.fillText('saldo ' + short(d.saldo), X, y + px(44)); y += px(70); }
+    y += px(60);
+    // grafik
+    const top = y, bottom = y + chartH;
+    const gx = (day) => X + (d.days > 1 ? (day - 1) / (d.days - 1) : 0) * cw;
+    const gy = (p) => top + (1 - p) * chartH;
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = c.track; ctx.lineWidth = px(4); ctx.setLineDash([px(12), px(16)]);
+    [0.25, 0.5, 0.75].forEach((p) => { ctx.beginPath(); ctx.moveTo(X, gy(p)); ctx.lineTo(R, gy(p)); ctx.stroke(); });
+    ctx.setLineDash([]);
+    const pts = d.pts.map((p) => [gx(p.d), gy(p.persen)]);
+    const trace = () => {
+      ctx.beginPath();
+      pts.forEach((p, i) => {
+        if (!i) { ctx.moveTo(p[0], p[1]); return; }
+        const a = pts[i - 1], t = (p[0] - a[0]) / 2;
+        ctx.bezierCurveTo(a[0] + t, a[1], p[0] - t, p[1], p[0], p[1]);
+      });
+    };
+    const zg = ctx.createLinearGradient(0, gy(1), 0, gy(0));
+    [[0, 'hijau'], [0.25, 'hijau'], [0.4, 'kuning'], [0.62, 'oranye'], [1, 'merah']].forEach(([o, z]) => zg.addColorStop(o, ZONE_HEX[z]));
+    const last = pts[pts.length - 1];
+    // area memudar: digambar di kanvas terpisah supaya transparansinya tidak memotong foto latar
+    const area = document.createElement('canvas');
+    area.width = W; area.height = H;
+    const a2 = area.getContext('2d');
+    a2.beginPath();
+    pts.forEach((p, i) => { if (!i) a2.moveTo(p[0], p[1]); else { const q = pts[i - 1], t = (p[0] - q[0]) / 2; a2.bezierCurveTo(q[0] + t, q[1], p[0] - t, p[1], p[0], p[1]); } });
+    a2.lineTo(last[0], bottom); a2.lineTo(pts[0][0], bottom); a2.closePath();
+    a2.fillStyle = zg; a2.globalAlpha = 0.6; a2.fill();
+    a2.globalCompositeOperation = 'destination-in';
+    const fade = a2.createLinearGradient(0, top, 0, bottom);
+    fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+    a2.globalAlpha = 1; a2.fillStyle = fade; a2.fillRect(0, top, W, chartH);
+    ctx.drawImage(area, 0, 0);
+    ctx.shadowColor = opts.dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.3)'; ctx.shadowBlur = px(14);
+    trace(); ctx.strokeStyle = zg; ctx.lineWidth = px(12); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(last[0], last[1], px(26), 0, Math.PI * 2); ctx.fillStyle = c.ink; ctx.fill();
+    ctx.beginPath(); ctx.arc(last[0], last[1], px(16), 0, Math.PI * 2); ctx.fillStyle = ZONE_HEX[d.zona] || c.fill; ctx.fill();
+    ctx.fillStyle = c.soft; ctx.font = font(700, 36); ctx.textAlign = 'center';
+    [1, Math.ceil(d.days / 2), d.days].forEach((day) => ctx.fillText(String(day), gx(day), bottom + px(60)));
+    ctx.textAlign = 'left';
+    y = bottom + px(110);
+    drawFooter(ctx, d.appName, opts, X, y + px(10));
+    ctx.restore();
+  }
+
+  /**
+   * Stiker perbandingan: hemat/boros berapa persen + batang memudar per bulan + garis rata-rata.
+   * d = { bulanLabel, bulan: [{ label, keluar }], rata, persen, appName }
+   */
+  function drawCompare(ctx, d, opts) {
+    const c = colors(opts);
+    const px = (n) => Math.round(n * K);
+    const font = (w, size) => w + ' ' + px(size) + 'px ' + FONT;
+    const X = MARGIN, R = W - MARGIN, cw = R - X;
+    const chartH = px(640);
+    const blockH = px(120) + px(170) + px(80) + px(100) + chartH + px(110) + px(150);
+    let y = H - 140 - blockH;
+    ctx.save();
+    ctx.shadowColor = opts.dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = px(18);
+    ctx.textBaseline = 'alphabetic';
+    eyebrow(ctx, c, 'Pengeluaran · ' + d.bulanLabel, X, y + px(40));
+    y += px(120);
+    const p = d.persen;
+    ctx.fillStyle = c.ink; ctx.font = font(800, 120);
+    ctx.fillText(p === null ? 'Bulan pertama' : Math.abs(p) < 0.05 ? 'Stabil ⚖️' : p < 0 ? 'Hemat ' + pct(-p) + ' 🎉' : 'Boros ' + pct(p) + ' 🔥', X, y + px(120), cw);
+    y += px(170);
+    ctx.fillStyle = c.soft; ctx.font = font(600, 44);
+    const cur = d.bulan[d.bulan.length - 1];
+    ctx.fillText(p === null ? 'belum ada bulan pembanding' : opts.hideAmount ? 'dibanding rata-rata bulan sebelumnya' : short(cur.keluar) + ' vs rata-rata ' + short(d.rata), X, y + px(40), cw);
+    y += px(80) + px(100);
+    const top = y, base = y + chartH;
+    const max = Math.max(1, d.rata, ...d.bulan.map((b) => b.keluar)) * 1.1;
+    const slot = cw / d.bulan.length, bw = slot * 0.58;
+    ctx.shadowBlur = 0;
+    d.bulan.forEach((b, i) => {
+      const cx = X + slot * (i + 0.5), last = i === d.bulan.length - 1;
+      ctx.fillStyle = last ? c.ink : c.soft; ctx.font = font(last ? 800 : 700, 40); ctx.textAlign = 'center';
+      ctx.fillText(b.label, cx, base + px(66));
+      if (!b.keluar) { ctx.fillText('–', cx, base - px(20)); ctx.textAlign = 'left'; return; }
+      const t = base - b.keluar / max * chartH;
+      const grd = ctx.createLinearGradient(0, t, 0, base);
+      const rgb = opts.dark ? '20,32,28' : '255,255,255';
+      grd.addColorStop(0, 'rgba(' + rgb + ',' + (last ? 0.95 : 0.5) + ')');
+      grd.addColorStop(0.7, 'rgba(' + rgb + ',' + (last ? 0.35 : 0.18) + ')');
+      grd.addColorStop(1, 'rgba(' + rgb + ',0)');
+      ctx.fillStyle = grd;
+      roundRect(ctx, cx - bw / 2, t, bw, base - t, px(28));
+      ctx.fill();
+      if (!opts.hideAmount) { ctx.fillStyle = last ? c.ink : c.soft; ctx.font = font(last ? 800 : 700, 38); ctx.fillText(short(b.keluar).replace('Rp', ''), cx, t - px(26)); }
+      ctx.textAlign = 'left';
+    });
+    if (d.rata > 0) {
+      const ay = base - d.rata / max * chartH;
+      ctx.strokeStyle = c.ink; ctx.lineWidth = px(5); ctx.setLineDash([px(18), px(14)]);
+      ctx.beginPath(); ctx.moveTo(X, ay); ctx.lineTo(R, ay); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.shadowBlur = px(18);
+    y = base + px(110);
+    drawFooter(ctx, d.appName, opts, X, y + px(10));
+    ctx.restore();
+  }
+
   /** Latar: foto pengguna (dipotong pas 9:16) atau gradasi pastel bila tanpa foto. */
   function drawBackground(ctx, photo, dark) {
     if (photo) {
@@ -320,6 +460,8 @@
     if (mode === 'final') drawBackground(ctx, opts.photo, opts.dark);
     if (opts.kind === 'hemat') drawAchievement(ctx, d, opts);
     else if (opts.kind === 'tujuan') drawGoal(ctx, d, opts);
+    else if (opts.kind === 'kas') drawCash(ctx, d, opts);
+    else if (opts.kind === 'banding') drawCompare(ctx, d, opts);
     else drawSticker(ctx, d, opts);
     return c;
   }
