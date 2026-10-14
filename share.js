@@ -6,6 +6,9 @@
  */
 (function (root) {
   const W = 1080, H = 1920;
+  // Teks di gambar ikut bahasa aplikasi (lihat i18n.js). T('Masih sisa') / T('{p} dari {t}', { p, t }).
+  const T = (str, vars) => (root.HBI18n ? root.HBI18n.t(str, vars) : (vars ? str.replace(/\{(\w+)\}/g, (x, n) => (n in vars ? vars[n] : x)) : str));
+  const EN = () => !!root.HBI18n && root.HBI18n.lang === 'en';
   const FONT = '"Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, sans-serif';
 
   /** Kalimat lucu berdasarkan kata di keterangan (lebih spesifik) atau kategori. */
@@ -33,14 +36,15 @@
     if (!top) return '';
     const text = (keterangan || []).join(' ');
     const kw = KEYWORDS.find(([re]) => re.test(text));
-    if (kw) return kw[1] + ' ' + kw[2];
+    if (kw) return kw[1] + ' ' + T(kw[2]);
     const c = CATEGORY_LINES[top.nama];
-    return c ? c[0] + ' ' + c[1] : '💸 Habis ke mana? Rahasia.';
+    return c ? c[0] + ' ' + T(c[1]) : '💸 ' + T('Habis ke mana? Rahasia.');
   }
 
   function short(n) {
-    if (n >= 1e6) return 'Rp' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
-    if (n >= 1e3) return 'Rp' + Math.round(n / 1e3).toLocaleString('id-ID') + ' rb';
+    const loc = EN() ? 'en-US' : 'id-ID';
+    if (n >= 1e6) return 'Rp' + (n / 1e6).toLocaleString(loc, { maximumFractionDigits: 1 }) + (EN() ? 'M' : ' jt');
+    if (n >= 1e3) return 'Rp' + Math.round(n / 1e3).toLocaleString(loc) + (EN() ? 'K' : ' rb');
     return 'Rp' + Math.round(n).toLocaleString('id-ID');
   }
 
@@ -85,7 +89,7 @@
     y += px(120);
     ctx.fillStyle = soft;
     ctx.font = font(600, 46);
-    ctx.fillText(d.items.length ? 'Habis' : 'Total pengeluaran', X, y - px(10));
+    ctx.fillText((d.items.length ? (EN() ? 'Spent' : 'Habis') : T('Total pengeluaran')), X, y - px(10));
     ctx.fillStyle = ink;
     ctx.font = font(800, 150);
     ctx.fillText(short(d.total), X, y + px(150));
@@ -104,7 +108,7 @@
       ctx.shadowBlur = px(18);
       ctx.fillStyle = ink;
       ctx.font = font(700, 46);
-      ctx.fillText((it.icon ? it.icon + '  ' : '') + it.nama, X, y + px(46), R - X - px(260));
+      ctx.fillText((it.icon ? it.icon + '  ' : '') + T(it.nama), X, y + px(46), R - X - px(260));
       ctx.textAlign = 'right';
       ctx.fillText(short(it.total), R, y + px(46));
       ctx.textAlign = 'left';
@@ -143,7 +147,7 @@
     ctx.fillText(appName, X + px(90), y + px(38));
     ctx.fillStyle = c.soft;
     ctx.font = font(600, 32);
-    ctx.fillText('cukup ngomong, tujuan tercapai', X + px(90), y + px(80));
+    ctx.fillText(T('cukup ngomong, tujuan tercapai'), X + px(90), y + px(80));
   }
 
   function colors(opts) {
@@ -157,10 +161,10 @@
 
   /** Kalimat apresiasi sesuai persen pemasukan yang tersisa. */
   function praiseLine(persen) {
-    if (persen >= 0.5) return '👑 Sultan hemat! Separuh pemasukan masih utuh.';
-    if (persen >= 0.25) return '💪 Dompet tebal, hati tenang.';
-    if (persen >= 0.1) return '🌱 Hemat level aman. Pertahankan!';
-    return '😄 Tipis-tipis, yang penting masih sisa.';
+    if (persen >= 0.5) return '👑 ' + T('Sultan hemat! Separuh pemasukan masih utuh.');
+    if (persen >= 0.25) return '💪 ' + T('Dompet tebal, hati tenang.');
+    if (persen >= 0.1) return '🌱 ' + T('Hemat level aman. Pertahankan!');
+    return '😄 ' + T('Tipis-tipis, yang penting masih sisa.');
   }
 
   function pct(persen) { return Math.round(persen * 100) + '%'; }
@@ -189,18 +193,18 @@
     y += px(120);
     ctx.fillStyle = c.ink;
     ctx.font = font(800, 64);
-    ctx.fillText('🏆 Berhasil hemat!', X, y + px(50), R - X);
+    ctx.fillText('🏆 ' + T('Berhasil hemat!'), X, y + px(50), R - X);
     y += px(130);
     ctx.fillStyle = c.soft;
     ctx.font = font(600, 46);
-    ctx.fillText(opts.hideAmount ? 'Pemasukan yang tersisa' : 'Masih sisa', X, y - px(10));
+    ctx.fillText(T(opts.hideAmount ? 'Pemasukan yang tersisa' : 'Masih sisa'), X, y - px(10));
     ctx.fillStyle = c.ink;
     ctx.font = font(800, 150);
     ctx.fillText(opts.hideAmount ? pct(d.persen) : short(d.sisa), X, y + px(150));
     y += px(190);
     ctx.fillStyle = c.soft;
     ctx.font = font(600, 44);
-    ctx.fillText(opts.hideAmount ? 'dari total pemasukan' : pct(d.persen) + ' dari total pemasukan', X, y + px(40), R - X);
+    ctx.fillText(opts.hideAmount ? T('dari total pemasukan') : T('{p} dari total pemasukan', { p: pct(d.persen) }), X, y + px(40), R - X);
     y += px(90);
 
     const barH = px(30);
@@ -241,7 +245,7 @@
     ctx.fillStyle = c.soft;
     ctx.font = font(700, 40);
     ctx.letterSpacing = px(6) + 'px';
-    ctx.fillText((d.tercapai ? 'Tujuan tercapai' : 'Menuju tujuan').toUpperCase(), X, y + px(40));
+    ctx.fillText(T(d.tercapai ? 'Tujuan tercapai' : 'Menuju tujuan').toUpperCase(), X, y + px(40));
     ctx.letterSpacing = '0px';
     y += px(120);
     ctx.fillStyle = c.ink;
@@ -250,14 +254,14 @@
     y += px(150);
     ctx.fillStyle = c.soft;
     ctx.font = font(600, 46);
-    ctx.fillText(opts.hideAmount ? 'Sudah terkumpul' : 'Terkumpul', X, y - px(10));
+    ctx.fillText(T(opts.hideAmount ? 'Sudah terkumpul' : 'Terkumpul'), X, y - px(10));
     ctx.fillStyle = c.ink;
     ctx.font = font(800, 150);
     ctx.fillText(opts.hideAmount ? pct(d.persen) : short(d.terkumpul), X, y + px(150));
     y += px(190);
     ctx.fillStyle = c.soft;
     ctx.font = font(600, 44);
-    ctx.fillText(opts.hideAmount ? 'dari target' : pct(d.persen) + ' dari ' + short(d.target), X, y + px(40), R - X);
+    ctx.fillText(opts.hideAmount ? T('dari target') : T('{p} dari {t}', { p: pct(d.persen), t: short(d.target) }), X, y + px(40), R - X);
     y += px(90);
 
     const barH = px(30);
@@ -272,7 +276,7 @@
     y += px(60);
     ctx.fillStyle = c.ink;
     ctx.font = font(600, 44);
-    ctx.fillText(d.subjudul || '', X, y + px(50), R - X);
+    ctx.fillText(T(d.subjudul || ''), X, y + px(50), R - X);
     y += px(150);
 
     drawFooter(ctx, d.appName, opts, X, y);
@@ -306,7 +310,7 @@
     ctx.shadowColor = opts.dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)';
     ctx.shadowBlur = px(18);
     ctx.textBaseline = 'alphabetic';
-    eyebrow(ctx, c, 'Posisi kas · ' + d.bulanLabel, X, y + px(40));
+    eyebrow(ctx, c, T('Posisi kas') + ' · ' + d.bulanLabel, X, y + px(40));
     y += px(120);
     ctx.fillStyle = c.ink; ctx.font = font(800, 150);
     ctx.fillText(pct(d.persen), X, y + px(150));
@@ -314,7 +318,7 @@
     ctx.font = font(700, 50);
     ctx.fillText(d.line, X, y + px(50), cw);
     y += px(90);
-    if (!opts.hideAmount) { ctx.fillStyle = c.soft; ctx.font = font(600, 44); ctx.fillText('saldo ' + short(d.saldo), X, y + px(44)); y += px(70); }
+    if (!opts.hideAmount) { ctx.fillStyle = c.soft; ctx.font = font(600, 44); ctx.fillText(T('saldo {x}', { x: short(d.saldo) }), X, y + px(44)); y += px(70); }
     y += px(60);
     // grafik
     const top = y, bottom = y + chartH;
@@ -377,15 +381,15 @@
     ctx.shadowColor = opts.dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)';
     ctx.shadowBlur = px(18);
     ctx.textBaseline = 'alphabetic';
-    eyebrow(ctx, c, 'Pengeluaran · ' + d.bulanLabel, X, y + px(40));
+    eyebrow(ctx, c, T('Pengeluaran') + ' · ' + d.bulanLabel, X, y + px(40));
     y += px(120);
     const p = d.persen;
     ctx.fillStyle = c.ink; ctx.font = font(800, 120);
-    ctx.fillText(p === null ? 'Bulan pertama' : Math.abs(p) < 0.05 ? 'Stabil ⚖️' : p < 0 ? 'Hemat ' + pct(-p) + ' 🎉' : 'Boros ' + pct(p) + ' 🔥', X, y + px(120), cw);
+    ctx.fillText(p === null ? T('Bulan pertama') : Math.abs(p) < 0.05 ? T('Stabil') + ' ⚖️' : p < 0 ? T('Hemat {p}', { p: pct(-p) }) + ' 🎉' : T('Boros {p}', { p: pct(p) }) + ' 🔥', X, y + px(120), cw);
     y += px(170);
     ctx.fillStyle = c.soft; ctx.font = font(600, 44);
     const cur = d.bulan[d.bulan.length - 1];
-    ctx.fillText(p === null ? 'belum ada bulan pembanding' : opts.hideAmount ? 'dibanding rata-rata bulan sebelumnya' : short(cur.keluar) + ' vs rata-rata ' + short(d.rata), X, y + px(40), cw);
+    ctx.fillText(p === null ? T('belum ada bulan pembanding') : opts.hideAmount ? T('dibanding rata-rata bulan sebelumnya') : T('{a} vs rata-rata {b}', { a: short(cur.keluar), b: short(d.rata) }), X, y + px(40), cw);
     y += px(80) + px(100);
     const top = y, base = y + chartH;
     const max = Math.max(1, d.rata, ...d.bulan.map((b) => b.keluar)) * 1.1;

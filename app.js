@@ -16,8 +16,12 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const rp = (n) => (n < 0 ? '-' : '') + 'Rp' + Math.abs(Math.round(n)).toLocaleString('id-ID');
-  const secs = (ms) => (ms / 1000).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' dtk';
+  const secs = (ms) => (ms / 1000).toLocaleString(LOC(), { maximumFractionDigits: 1 }) + (EN() ? 's' : ' dtk');
   const digits = (s) => Number(String(s).replace(/\D/g, '')) || 0;
+  // Bahasa: teks tampilan diterjemahkan otomatis oleh i18n.js; di sini hanya yang perlu logika (tanggal, kalimat bervariasi, AI).
+  const EN = () => !!window.HBI18n && window.HBI18n.lang === 'en';
+  const LOC = () => (EN() ? 'en-US' : 'id-ID');
+  const LANG = () => (EN() ? 'en' : 'id');
 
   function thisMonth() { return todayStr().slice(0, 7); }
   function todayStr() {
@@ -26,11 +30,11 @@
   }
   function monthShort(ym) {
     const [y, m] = ym.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+    return new Date(y, m - 1, 1).toLocaleDateString(LOC(), { month: 'short', year: 'numeric' });
   }
   function fmtMonth(ym) {
     const [y, m] = ym.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    return new Date(y, m - 1, 1).toLocaleDateString(LOC(), { month: 'long', year: 'numeric' });
   }
   function fmtDay(ymd) {
     const [y, m, d] = ymd.split('-').map(Number);
@@ -38,7 +42,7 @@
     const kemarin = new Date(); kemarin.setDate(kemarin.getDate() - 1);
     const dt = new Date(y, m - 1, d);
     if (dt.toDateString() === kemarin.toDateString()) return 'Kemarin';
-    return dt.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+    return dt.toLocaleDateString(LOC(), { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
   }
   function shiftMonth(ym, delta) {
     const [y, m] = ym.split('-').map(Number);
@@ -211,7 +215,7 @@
     const d = fmtDay(ymd);
     if (d === 'Kemarin') return d;
     const [y, m, dd] = ymd.split('-').map(Number);
-    return new Date(y, m - 1, dd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    return new Date(y, m - 1, dd).toLocaleDateString(LOC(), { day: 'numeric', month: 'short' });
   }
 
   function renderHistory() {
@@ -224,7 +228,7 @@
         esc(w.nama) + (w.arsip ? ' (dihapus)' : '') + '</option>').join('');
     const catNames = Array.from(new Set(S.categories.map((c) => c.nama).concat(['Pindah dana'])));
     $('f-cat').innerHTML = '<option value="">Kategori</option>' +
-      catNames.map((c) => '<option' + (c === f.cat ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+      catNames.map((c) => '<option value="' + esc(c) + '"' + (c === f.cat ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
 
     const q = f.q.trim().toLowerCase();
     const list = L.sortTx(S.transactions).reverse().filter((t) =>
@@ -253,7 +257,7 @@
   const ZONE_HEX = { hijau: '#22c55e', kuning: '#eab308', oranye: '#f97316', merah: '#ef4444' };
   const pct = (p) => Math.round(p * 100) + '%';
   /** Kalimat Gen Z untuk zona; berganti per hari, bisa digeser dengan mengetuk judul. */
-  const zoneText = (p, seed) => { const z = L.cashZone(p); return { zona: z, icon: ZONE_ICON[z], label: L.cashLine(z, (seed || 0) + (S.lineShift || 0)) }; };
+  const zoneText = (p, seed) => { const z = L.cashZone(p); return { zona: z, icon: ZONE_ICON[z], label: L.cashLine(z, (seed || 0) + (S.lineShift || 0), LANG()) }; };
   /** Kurva halus melalui titik-titik [x, y]. */
   const smoothPath = (pts) => pts.map((p, i) => {
     if (!i) return 'M' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
@@ -418,11 +422,11 @@
   }
   function fmtDate(ymd) {
     const [y, m, d] = String(ymd).split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(y, m - 1, d).toLocaleDateString(LOC(), { day: 'numeric', month: 'short', year: 'numeric' });
   }
   function fmtMonthShort(ymd) {
     const [y, m] = String(ymd).split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+    return new Date(y, m - 1, 1).toLocaleDateString(LOC(), { month: 'short', year: 'numeric' });
   }
   function sisaHariText(n) { return n < 0 ? 'lewat ' + -n + ' hari' : n === 0 ? 'hari ini' : n + ' hari lagi'; }
   function safeDaily() {
@@ -601,6 +605,7 @@
   }
 
   function tipFor(z, jatah) {
+    if (EN()) return tipForEn(z, jatah);
     const g = activeGoal();
     const p = g && goalProg(g);
     const nama = g ? g.nama : '';
@@ -627,6 +632,33 @@
     }
   }
 
+  function tipForEn(z, jatah) {
+    const g = activeGoal();
+    const p = g && goalProg(g);
+    const nama = g ? g.nama : '';
+    if (!S.transactions.length) {
+      return g ? 'Your goal is set, now let\'s go! Log your income & spending and I\'ll keep an eye on it 😏'
+        : 'Hi! I\'m Gasss. Set one goal first, then log your spending. I\'ll remind you (and nag you) 😏';
+    }
+    if (!z.zona) return 'No income logged this month yet. Log your payday and I\'ll work out your safe daily allowance.';
+    const kas = z.persen === null ? 'a little' : Math.round(z.persen * 100) + '%';
+    if (z.alasan === 'target') {
+      return 'STOP! Your free money for this month is gone' + (g ? ', the rest belongs to ' + nama : '') + '. Hold off spending until money comes in 😤';
+    }
+    const kurang = p && p.kurangBulanIni > 0 ? rp(p.kurangBulanIni) : '';
+    if (p && p.status === 'lewat') return nama + '\'s deadline has passed. No stress, that\'s not failing. Extend it from the goal card 🙂';
+    if (p && p.status === 'kejar' && (z.zona === 'hijau' || z.zona === 'kuning')) {
+      return nama + ' needs catching up 🔥 Set aside ≈ ' + rpShort(p.perMinggu) + ' a week to get back on track.';
+    }
+    switch (z.zona) {
+      case 'hijau': return g ? (kurang ? 'Cash is chill ☁️ Perfect time to set aside ' + kurang + ' for ' + nama + '.' : nama + ' is on track and cash is chill. Keep it up, boss 😎')
+        : 'Cash is chill ☁️ Instead of letting it sit, set a goal so your money has a direction.';
+      case 'kuning': return 'You\'re past the halfway mark. ' + (jatah ? 'Safe to spend today: ' + rp(Math.max(0, jatah.sisaHariIni)) + ', don\'t go over 👀' : 'Go easy on the spending 👀');
+      case 'oranye': return 'Heads up! Only ' + kas + ' cash left. Cut the unnecessary snacks' + (kurang ? ', ' + nama + ' still needs ' + kurang + ' this month ✋' : ' ✋');
+      default: return 'SURVIVAL MODE! Only ' + kas + ' cash left. Stop the unnecessary spending' + (g ? ', ' + nama + ' is crying in the corner 😤' : ' 😤');
+    }
+  }
+
   /** Suasana keuangan sekarang (zona posisi kas + jatah/target), dipakai warna latar & nada Gasss. */
   function mood() {
     const g = activeGoal();
@@ -641,9 +673,15 @@
     merah: ['Awas boncos', 'Stop jajan', 'Darurat dompet'],
   };
   const GREET_ICON = { hijau: '😎', kuning: '🙂', oranye: '✋', merah: '😤' };
+  const GREET_EN = {
+    hijau: ['All good', 'Chill mode', 'Cash is happy'],
+    kuning: ['Easy does it', 'Time to save', 'Keep the pace'],
+    oranye: ['Ease up', 'Heads up', 'Hold the snacks'],
+    merah: ['Broke alert', 'Stop spending', 'Wallet SOS'],
+  };
   function greeting(zona, name) {
-    if (!zona) return 'Halo' + (name ? ', ' + name : '') + ' 👋';
-    const list = GREET[zona];
+    if (!zona) return (EN() ? 'Hi' : 'Halo') + (name ? ', ' + name : '') + ' 👋';
+    const list = (EN() ? GREET_EN : GREET)[zona];
     const pick = list[Number(todayStr().slice(8)) % list.length];
     return pick + (name ? ', ' + name : '') + (zona === 'merah' ? '!' : '') + ' ' + GREET_ICON[zona];
   }
@@ -690,8 +728,8 @@
     const keluar = sum(saved.filter((t) => t.jenis === 'keluar' && t.dompet_id !== gw));
     const keTujuan = sum(saved.filter((t) => t.jenis === 'pindah' && gw && t.dompet_tujuan_id === gw));
     const days = g ? L.goalDelayDays(p, keTujuan || keluar) : null;
-    const text = komentar ? L.fillDays(komentar, days)
-      : L.localComment({ saved, zona: z.zona || 'kuning', alasan: z.alasan, persenKas: z.persen, goalName: g ? g.nama : '', goalWallet: gw, prog: p });
+    const text = komentar ? L.fillDays(komentar, days, LANG())
+      : L.localComment({ saved, zona: z.zona || 'kuning', alasan: z.alasan, persenKas: z.persen, goalName: g ? g.nama : '', goalWallet: gw, prog: p, lang: LANG() });
     if (text) setKomentar(text, z.zona || 'kuning');
     const masuk = saved.filter((t) => t.jenis === 'masuk' && t.kategori !== L.KATEGORI_SALDO_AWAL && t.dompet_id !== gw);
     if (g && p.kurangBulanIni > 0 && masuk.length) {
@@ -845,8 +883,9 @@
         const b = e.target.closest('[data-tpl]');
         if (!b) return;
         const t = T.find((x) => x.key === b.dataset.tpl);
-        inp.value = t.contoh;
-        go({ text: t.contoh, template: t.key });
+        const contoh = EN() && t.contohEn ? t.contohEn : t.contoh;
+        inp.value = contoh;
+        go({ text: contoh, template: t.key });
       };
       mic.onclick = async () => {
         if (!rec) {
@@ -884,14 +923,16 @@
   async function planGoal(req) {
     if (DEMO) {
       if (req.audio) throw new Error('Mode demo belum bisa memproses suara. Ketik saja ya.');
-      return L.planDemo(req.text, todayStr());
+      const p = L.planDemo(req.text, todayStr());
+      if (EN()) { p.rincian.forEach((r) => { r.nama = HBI18n.tr(r.nama); }); p.catatan = HBI18n.tr(p.catatan); }
+      return p;
     }
     let p;
     try {
-      p = await api('plan', { text: req.text, audio: req.audio, mime: req.mime, lane: 0 });
+      p = await api('plan', { text: req.text, audio: req.audio, mime: req.mime, lane: 0, bahasa: LANG() });
     } catch (e) {
       if (e.code === 'auth' || e.code === 'forbidden') throw e;
-      p = await api('plan', { text: req.text, audio: req.audio, mime: req.mime, lane: 1 });
+      p = await api('plan', { text: req.text, audio: req.audio, mime: req.mime, lane: 1, bahasa: LANG() });
     }
     return L.cleanPlan(p, todayStr());
   }
@@ -1210,7 +1251,7 @@
           el.querySelector('#tf-wallet-label').textContent = jenis === 'masuk' ? 'Masuk ke dompet' : 'Dari dompet';
           const cur = el.querySelector('#tf-cat').value || tx.kategori;
           el.querySelector('#tf-cat').innerHTML = catsOf(jenis === 'pindah' ? 'keluar' : jenis).map((c) =>
-            '<option' + (c.nama === cur ? ' selected' : '') + '>' + esc(c.nama) + '</option>').join('');
+            '<option value="' + esc(c.nama) + '"' + (c.nama === cur ? ' selected' : '') + '>' + esc(c.nama) + '</option>').join('');
         };
         el.querySelectorAll('#tf-jenis button').forEach((b) => { b.onclick = () => { jenis = b.dataset.j; sync(); }; });
         // Pengeluaran baru: dompet otomatis mengikuti kategori yang dipilih.
@@ -1321,7 +1362,7 @@
       '<div class="list"><button class="list-item" id="ew-rename">Ganti nama</button>' +
       '<button class="list-item" id="ew-history">Lihat riwayat dompet ini</button>' +
       (id === L.UTAMA_ID || w.tujuan ? '' : '<div class="list-item"><label for="ew-kat" style="flex:1">Dompet untuk kategori</label><select id="ew-kat" class="ew-kat">' +
-        '<option value="">(tidak ada)</option>' + catsOf('keluar').filter((c) => c.nama !== 'Lainnya').map((c) => '<option' + (w.kategori === c.nama ? ' selected' : '') + '>' +
+        '<option value="">(tidak ada)</option>' + catsOf('keluar').filter((c) => c.nama !== 'Lainnya').map((c) => '<option value="' + esc(c.nama) + '"' + (w.kategori === c.nama ? ' selected' : '') + '>' +
         esc(c.nama) + '</option>').join('') + '</select></div>') +
       (id === L.UTAMA_ID ? '' : '<button class="list-item danger-text" id="ew-del">Hapus dompet</button>') + '</div>' +
       '<div class="btn-row"><button class="btn" id="ew-close">Tutup</button></div>', (el) => {
@@ -1448,6 +1489,7 @@
       wallets: activeWallets().map((w) => ({ id: w.id, nama: w.nama })),
       categories: S.categories.map((c) => ({ nama: c.nama, jenis: c.jenis })),
       konteks: aiContext(),
+      bahasa: LANG(),
     };
     return new Promise((resolve, reject) => {
       let finished = false, pending = 0, backupSent = false, lastErr = null, timer = null;
@@ -1862,7 +1904,7 @@
       box.innerHTML = '<div class="empty">Belum ada pengeluaran untuk dibandingkan.</div>';
       return;
     }
-    const short = (ym) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short' }); };
+    const short = (ym) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString(LOC(), { month: 'short' }); };
     let verdict;
     if (c.persen === null) verdict = 'Belum ada data pengeluaran di bulan-bulan sebelumnya.';
     else if (Math.abs(c.persen) < 0.05) verdict = '⚖️ Pengeluaran ' + fmtMonth(cur.bulan) + ' kurang lebih sama dengan rata-rata sebelumnya.';
@@ -1941,7 +1983,7 @@
         zona: z.zona, line: z.icon + ' ' + z.label, appName: APP_NAME };
     } else {
       const c = L.compareMonths(S.transactions, m, S.compareN || 3);
-      const short = (ym) => { const [y, mm] = ym.split('-').map(Number); return new Date(y, mm - 1, 1).toLocaleDateString('id-ID', { month: 'short' }); };
+      const short = (ym) => { const [y, mm] = ym.split('-').map(Number); return new Date(y, mm - 1, 1).toLocaleDateString(LOC(), { month: 'short' }); };
       data = { bulanLabel: fmtMonth(m), bulan: c.bulan.map((b) => ({ label: short(b.bulan), keluar: b.adaData ? b.keluar : 0 })), rata: c.rataSebelum,
         persen: c.persen, appName: APP_NAME };
     }
@@ -1960,8 +2002,8 @@
 
   function rpShort(n) {
     const a = Math.abs(n);
-    if (a >= 1e6) return 'Rp' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
-    if (a >= 1e3) return 'Rp' + Math.round(n / 1e3).toLocaleString('id-ID') + ' rb';
+    if (a >= 1e6) return 'Rp' + (n / 1e6).toLocaleString(LOC(), { maximumFractionDigits: 1 }) + (EN() ? 'M' : ' jt');
+    if (a >= 1e3) return 'Rp' + Math.round(n / 1e3).toLocaleString(LOC()) + (EN() ? 'K' : ' rb');
     return rp(n);
   }
 
@@ -1976,11 +2018,20 @@
     { icon: '🚀', title: 'Udah, gitu doang!', text: 'Habis ini kita bikin tujuan pertamamu (boleh <b>Nanti dulu</b>). Ada ide atau keluhan? <b>Atur → Kirim masukan</b>. Gasss!' },
   ];
 
+  const TUTORIAL_EN = [
+    { icon: '👋', title: 'Hey boss! I\'m Gasss', text: 'I help you make <b>one goal</b> happen: a trip, a new phone, a running race, a wedding… with a deadline. Not just tracking money, I walk with you until you get there.' },
+    { icon: '🎯', title: 'One goal, one focus', text: 'Tell me your goal, e.g. <b>“run the Jakarta Marathon in June 2027”</b>. AI breaks down the costs and you just fix them. The money lives in a <b>goal wallet</b>. Other goal ideas can wait their turn.' },
+    { icon: '🎙️', title: 'Don\'t type, just talk', text: 'Tap the mic and talk like you\'re venting:<br><b>“lunch 25 thousand, parking 2 thousand”</b> or <b>“save 500 thousand to my goal”</b>.<br>Heard it wrong? Tap the transaction and fix it.' },
+    { icon: '😤', title: 'Careful, I can get fierce', text: 'Cash is safe? I\'m chill & funny. Cash running low? I get stricter, all the way to <b>yelling</b>. Fierce because I care, so your goal doesn\'t slip. Check your <b>safe-to-spend today</b> on Home too.' },
+    { icon: '💾', title: 'Your data, your phone, your call', text: 'Everything is stored on this phone only, not on any server. So <b>back up</b> regularly to Excel or Google Sheets in Settings, so you won\'t cry if your phone falls in the water.' },
+    { icon: '🚀', title: 'That\'s it!', text: 'Next, let\'s set your first goal (you can tap <b>Later</b>). Ideas or complaints? <b>Settings → Send feedback</b>. Gasss!' },
+  ];
+
   function showTutorial() {
     let i = 0;
     const el = $('tutorial');
     const draw = () => {
-      const s = TUTORIAL[i];
+      const s = (EN() ? TUTORIAL_EN : TUTORIAL)[i];
       el.querySelector('.tut-icon').textContent = s.icon;
       el.querySelector('.tut-title').textContent = s.title;
       el.querySelector('.tut-text').innerHTML = s.text;
@@ -2145,7 +2196,7 @@
     return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   }
   function fmtDateTime(iso) {
-    return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleString(LOC(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
   function fileStamp() { return todayStr(); }
 
@@ -2336,7 +2387,7 @@
     return {
       bulan: fmtMonth(m),
       akun: me ? (me.nama ? me.nama + ' (' + me.email + ')' : me.email) : '',
-      dibuat: new Date().toLocaleString('id-ID'),
+      dibuat: new Date().toLocaleString(LOC()),
       ringkasan: L.monthSummary(S.transactions, m),
       totalSaldo: cw.reduce((s, w) => s + w.saldo, 0),
       posisiKas: last ? { persen: pct(last.persen), label: zoneText(last.persen, Number(String(last.tanggal).slice(8))).label } : null,
@@ -2407,6 +2458,11 @@
     $('btn-sheets-backup').onclick = () => withSheets('backup');
     $('btn-sheets-restore').onclick = () => withSheets('restore');
     $('btn-tutorial').onclick = showTutorial;
+    $('lang-seg').onclick = (e) => {
+      const b = e.target.closest('[data-lang]');
+      if (b && b.dataset.lang !== LANG() && window.HBI18n) window.HBI18n.setLang(b.dataset.lang);
+    };
+    document.querySelectorAll('#lang-seg [data-lang]').forEach((b) => b.classList.toggle('on', b.dataset.lang === LANG()));
     $('btn-share-recap').onclick = openShareRecap;
     $('btn-share-cash').onclick = () => openShareChart('kas');
     $('btn-share-hemat').onclick = () => openShareAchievement(S.reportMonth);
@@ -2479,12 +2535,16 @@
   // ---------- Mulai ----------
 
   bind();
-  if (DEMO) showApp();
-  else if (session() && (location.hash.indexOf('access_token=') >= 0 ||
-    (location.hash.indexOf('state=gs.') >= 0 && location.hash.indexOf('error=') >= 0))) finishSheetsAuth();
-  else if (location.hash.indexOf('id_token=') >= 0 || location.hash.indexOf('error=') >= 0) finishLogin();
-  else if (session()) showApp();
-  else logout();
+  // Mulai setelah kamus bahasa siap (English: en.js dimuat dulu; Indonesia: langsung).
+  const i18nReady = window.HBI18n ? window.HBI18n.ready : Promise.resolve();
+  i18nReady.then(() => {
+    if (DEMO) showApp();
+    else if (session() && (location.hash.indexOf('access_token=') >= 0 ||
+      (location.hash.indexOf('state=gs.') >= 0 && location.hash.indexOf('error=') >= 0))) finishSheetsAuth();
+    else if (location.hash.indexOf('id_token=') >= 0 || location.hash.indexOf('error=') >= 0) finishLogin();
+    else if (session()) showApp();
+    else logout();
+  });
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});

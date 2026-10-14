@@ -28,7 +28,7 @@
     document.querySelectorAll('#login-screen .lg-dots i').forEach((d, k) => d.classList.toggle('on', k === n));
     $('#lg-cap').textContent = scenes[n].dataset.cap;
     if (n === 0) {
-      const t = '“kopi dua puluh lima ribu”', typed = $('#lg-typed');
+      const t = root.HBI18n ? root.HBI18n.t('“kopi dua puluh lima ribu”') : '“kopi dua puluh lima ribu”', typed = $('#lg-typed');
       typed.textContent = '';
       for (let k = 1; k <= t.length; k++) later(() => { typed.textContent = t.slice(0, k); }, 300 + k * 55);
     }

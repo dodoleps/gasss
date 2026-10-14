@@ -168,7 +168,9 @@ async function parse(req, env, u) {
   if (!cats.length) cats = DEFAULT_CATS;
 
   const ctx = cleanContext(req.konteks);
-  const parts = [{ text: buildPrompt(wallets, cats, !!req.audio, ctx) }];
+  const en = req.bahasa === 'en';
+  if (ctx) ctx.en = en;
+  const parts = [{ text: buildPrompt(wallets, cats, !!req.audio, ctx) + (en ? '\n' + EN_PARSE : '') }];
   if (req.audio) {
     if (String(req.audio).length > 8000000) throw new HttpError('Rekaman terlalu panjang');
     parts.push({ inlineData: { mimeType: str(req.mime, 40) || 'audio/wav', data: req.audio } });
@@ -239,7 +241,9 @@ function commentPrompt(c) {
     '- Kalau mau menyebut berapa hari tujuan mundur (karena belanja) atau maju (karena menabung), tulis persis token {hari},',
     '  mis. "Jakarta Marathon mundur {hari} hari". Aplikasi yang menghitung angkanya; jangan menulis angka harinya sendiri.',
     '- Pemasukan: ajak sisihkan dulu ke tujuan. Uang yang dipindah ke dompet tujuan: beri pujian.',
-    '- Bahasa Indonesia santai, boleh 1 emoji, lucu, tanpa kata kasar dan tanpa menghina.',
+    c.en ? '- Tulis komentar dalam BAHASA INGGRIS santai ala Gen Z, boleh 1 emoji, lucu, tanpa kata kasar dan tanpa menghina. ' +
+      'Token hari tetap ditulis {hari}, mis. "Jakarta Marathon got pushed back {hari} days".'
+      : '- Bahasa Indonesia santai, boleh 1 emoji, lucu, tanpa kata kasar dan tanpa menghina.',
     BATAS_AMAN,
     '- Jika tidak ada transaksi, komentar berisi string kosong.',
   ].filter((x) => x !== '').join('\n');
@@ -249,7 +253,7 @@ function commentPrompt(c) {
 
 async function plan(req, env, u) {
   if (!env.GEMINI_API_KEY) throw new HttpError('GEMINI_API_KEY belum diatur di Worker.', 'config');
-  const parts = [{ text: buildPlanPrompt(!!req.audio) }];
+  const parts = [{ text: buildPlanPrompt(!!req.audio) + (req.bahasa === 'en' ? '\n' + EN_PLAN : '') }];
   let text = '';
   if (req.audio) {
     if (String(req.audio).length > 8000000) throw new HttpError('Rekaman terlalu panjang');
@@ -275,6 +279,13 @@ async function plan(req, env, u) {
     timing: { model: ai.model, ai_ms: Date.now() - t0, attempts: ai.log.length, log: ai.log, lane },
   };
 }
+
+/** Tambahan perintah saat pengguna memakai aplikasi berbahasa Inggris. */
+const EN_PARSE = 'PENTING: pengguna memakai bahasa Inggris (boleh campur Indonesia). Pahami angka bahasa Inggris ' +
+  '(mis. "25k", "25 thousand" = 25000, "1.5 million" = 1500000). Tulis "keterangan" dalam bahasa Inggris singkat. ' +
+  '"kategori" dan "dompet" TETAP persis dari daftar (jangan diterjemahkan).';
+const EN_PLAN = 'PENTING: pengguna memakai bahasa Inggris. Tulis "nama", nama pos "rincian", dan "catatan" dalam bahasa Inggris. ' +
+  'Nominal tetap dalam rupiah.';
 
 function buildPlanPrompt(isAudio) {
   const hari = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long' }).format(new Date());

@@ -85,6 +85,8 @@
     return { wallets: sheet('Dompet'), categories: sheet('Kategori'), transactions, goals };
   }
 
+  const T = (s) => (root.HBI18n ? root.HBI18n.tr(s) : s);
+
   /** Laporan bulanan dalam Excel (beberapa lembar, angka berformat Rupiah). */
   async function reportXlsx(rep) {
     await load('xlsx');
@@ -93,31 +95,31 @@
       for (let r = from; r <= to; r++) colLetters.forEach((c) => { const cell = ws[c + r]; if (cell && cell.t === 'n') cell.z = RP; });
     };
     const ring = XLSX.utils.aoa_to_sheet([
-      ['Laporan Keuangan Gasss'], [rep.bulan], [rep.akun ? 'Akun: ' + rep.akun : ''], [],
-      ['Pemasukan', rep.ringkasan.masuk], ['Pengeluaran', rep.ringkasan.keluar], ['Selisih', rep.ringkasan.selisih],
-      ['Total saldo semua dompet', rep.totalSaldo],
-      ['Posisi kas', rep.posisiKas ? rep.posisiKas.persen + ' — ' + rep.posisiKas.label : '-'], [],
-      ['Dibuat', rep.dibuat],
+      [T('Laporan Keuangan Gasss')], [rep.bulan], [rep.akun ? T('Akun') + ': ' + rep.akun : ''], [],
+      [T('Pemasukan'), rep.ringkasan.masuk], [T('Pengeluaran'), rep.ringkasan.keluar], [T('Selisih'), rep.ringkasan.selisih],
+      [T('Total saldo semua dompet'), rep.totalSaldo],
+      [T('Posisi kas'), rep.posisiKas ? rep.posisiKas.persen + ' — ' + rep.posisiKas.label : '-'], [],
+      [T('Dibuat'), rep.dibuat],
     ]);
     money(ring, ['B'], 5, 8);
     ring['!cols'] = [{ wch: 26 }, { wch: 22 }];
-    XLSX.utils.book_append_sheet(wb, ring, 'Ringkasan');
+    XLSX.utils.book_append_sheet(wb, ring, T('Ringkasan'));
 
-    const dompet = XLSX.utils.aoa_to_sheet([['Dompet', 'Saldo', 'Status']].concat(rep.dompet.map((w) => [w.nama, w.saldo, w.status])));
+    const dompet = XLSX.utils.aoa_to_sheet([[T('Dompet'), T('Saldo'), T('Status')]].concat(rep.dompet.map((w) => [T(w.nama), w.saldo, T(w.status)])));
     money(dompet, ['B'], 2, rep.dompet.length + 1);
     dompet['!cols'] = [{ wch: 24 }, { wch: 18 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(wb, dompet, 'Dompet');
+    XLSX.utils.book_append_sheet(wb, dompet, T('Dompet'));
 
-    const kat = XLSX.utils.aoa_to_sheet([['Kategori', 'Pengeluaran', 'Persen']].concat(rep.kategori.map((k) => [k.kategori, k.total, Math.round(k.persen * 100) + '%'])));
+    const kat = XLSX.utils.aoa_to_sheet([[T('Kategori'), T('Pengeluaran'), T('Persen')]].concat(rep.kategori.map((k) => [T(k.kategori), k.total, Math.round(k.persen * 100) + '%'])));
     money(kat, ['B'], 2, rep.kategori.length + 1);
     kat['!cols'] = [{ wch: 24 }, { wch: 18 }, { wch: 10 }];
-    XLSX.utils.book_append_sheet(wb, kat, 'Per Kategori');
+    XLSX.utils.book_append_sheet(wb, kat, T('Per Kategori'));
 
-    const tx = XLSX.utils.aoa_to_sheet([['Tanggal', 'Jenis', 'Keterangan', 'Kategori', 'Dari dompet', 'Ke dompet', 'Nominal']]
-      .concat(rep.transaksi.map((t) => [t.tanggal, t.jenis, t.keterangan, t.kategori, t.dompet, t.tujuan, t.nominal])));
+    const tx = XLSX.utils.aoa_to_sheet([[T('Tanggal'), T('Jenis'), T('Keterangan'), T('Kategori'), T('Dari dompet'), T('Ke dompet'), T('Nominal')]]
+      .concat(rep.transaksi.map((t) => [t.tanggal, T(t.jenis), t.keterangan, T(t.kategori), T(t.dompet), T(t.tujuan), t.nominal])));
     money(tx, ['G'], 2, rep.transaksi.length + 1);
     tx['!cols'] = [{ wch: 12 }, { wch: 9 }, { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 16 }];
-    XLSX.utils.book_append_sheet(wb, tx, 'Transaksi');
+    XLSX.utils.book_append_sheet(wb, tx, T('Transaksi'));
     return toBlob(wb);
   }
 
@@ -129,7 +131,7 @@
     const W = doc.internal.pageSize.getWidth();
     let y = 48;
     doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(...ink);
-    doc.text('Laporan Keuangan', 40, y);
+    doc.text(T('Laporan Keuangan'), 40, y);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...muted);
     doc.text(rep.bulan + (rep.akun ? '  |  ' + rep.akun : ''), 40, y + 18);
     doc.text('Gasss', W - 40, y, { align: 'right' });
@@ -151,27 +153,27 @@
       y = doc.lastAutoTable.finalY + 24;
     };
 
-    table('Ringkasan', ['', ''], [
-      ['Pemasukan', rp(rep.ringkasan.masuk)], ['Pengeluaran', rp(rep.ringkasan.keluar)], ['Selisih', rp(rep.ringkasan.selisih)],
-      ['Total saldo semua dompet', rp(rep.totalSaldo)],
-      ['Posisi kas', rep.posisiKas ? rep.posisiKas.persen + ' - ' + rep.posisiKas.label : '-'],
+    table(T('Ringkasan'), ['', ''], [
+      [T('Pemasukan'), rp(rep.ringkasan.masuk)], [T('Pengeluaran'), rp(rep.ringkasan.keluar)], [T('Selisih'), rp(rep.ringkasan.selisih)],
+      [T('Total saldo semua dompet'), rp(rep.totalSaldo)],
+      [T('Posisi kas'), rep.posisiKas ? rep.posisiKas.persen + ' - ' + rep.posisiKas.label : '-'],
     ], { showHead: false, columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } } });
-    table('Saldo dompet', ['Dompet', 'Status', 'Saldo'], rep.dompet.map((w) => [w.nama, w.status, rp(w.saldo)]),
+    table(T('Saldo dompet'), [T('Dompet'), T('Status'), T('Saldo')], rep.dompet.map((w) => [T(w.nama), T(w.status), rp(w.saldo)]),
       { columnStyles: { 2: { halign: 'right' } } });
     if (rep.kategori.length) {
-      table('Pengeluaran per kategori', ['Kategori', 'Persen', 'Total'],
-        rep.kategori.map((k) => [k.kategori, Math.round(k.persen * 100) + '%', rp(k.total)]),
+      table(T('Pengeluaran per kategori'), [T('Kategori'), T('Persen'), T('Total')],
+        rep.kategori.map((k) => [T(k.kategori), Math.round(k.persen * 100) + '%', rp(k.total)]),
         { columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } } });
     }
-    table('Daftar transaksi', ['Tanggal', 'Keterangan', 'Kategori', 'Dompet', 'Nominal'],
-      rep.transaksi.map((t) => [t.tanggal, t.keterangan, t.kategori, t.tujuan ? t.dompet + ' ke ' + t.tujuan : t.dompet,
+    table(T('Daftar transaksi'), [T('Tanggal'), T('Keterangan'), T('Kategori'), T('Dompet'), T('Nominal')],
+      rep.transaksi.map((t) => [t.tanggal, t.keterangan, T(t.kategori), t.tujuan ? T(t.dompet) + ' → ' + T(t.tujuan) : T(t.dompet),
         (t.jenis === 'masuk' ? '+' : t.jenis === 'keluar' ? '-' : '') + rp(t.nominal)]),
       { columnStyles: { 4: { halign: 'right' } } });
 
     const pages = doc.getNumberOfPages();
     for (let i = 1; i <= pages; i++) {
       doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...muted);
-      doc.text('Dibuat ' + rep.dibuat + '  |  halaman ' + i + ' dari ' + pages, 40, doc.internal.pageSize.getHeight() - 24);
+      doc.text((root.HBI18n && root.HBI18n.lang === 'en' ? 'Created ' + rep.dibuat + '  |  page ' + i + ' of ' + pages : 'Dibuat ' + rep.dibuat + '  |  halaman ' + i + ' dari ' + pages), 40, doc.internal.pageSize.getHeight() - 24);
     }
     return doc.output('blob');
   }

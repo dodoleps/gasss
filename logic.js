@@ -305,9 +305,20 @@
     merah: ['Mode survival on, jangan banyak gaya 🆘', 'Dompet lagi sekarat, it\'s giving boncos 💀', 'Darurat! Puasa jajan sampai gajian 😤', 'Bestie, ini bukan waktunya healing 🚨',
       'Kas kritis, masak sendiri dulu aja 🍳', 'Boncos alert, tahan semua checkout ⛔'],
   };
-  /** Kalimat untuk zona & "benih" (mis. tanggal) — bergantian supaya tidak monoton. */
-  function cashLine(zona, seed) {
-    const list = CASH_LINES[zona] || CASH_LINES.kuning;
+  const CASH_LINES_EN = {
+    hijau: ['Your wallet is glowing, king ✨', 'Balance is safe, pure healing vibes 🌿', 'Cash still full, keep slaying 💅', 'All good, zero drama 😎',
+      'Up in the clouds, don\'t forget to save ☁️', 'Your cash is a total green flag 🟢'],
+    kuning: ['Enjoy life, but keep it lowkey 😌', 'Still okay, just don\'t FOMO 👀', 'Halfway there, ease up on the snacks 🙂', 'Chill but mindful, bestie 🧘',
+      'Checkout is fine, just not every day 🛒', 'Vibes still chill, keep the rhythm 🎧'],
+    oranye: ['Heads up, your wallet is drying out 🫠', 'Small red flag, cut the snacks ✋', 'Saving mode on, no debate 🔒', 'Cash running low, skip the pricey coffee ☕',
+      'Not the vibes, hold the shopping 😬', 'Hold that checkout, bestie 🛑'],
+    merah: ['Survival mode on, no showing off 🆘', 'Wallet on life support, it\'s giving broke 💀', 'Emergency! No snacks till payday 😤', 'Bestie, this is not the time for healing 🚨',
+      'Critical cash, cook at home for now 🍳', 'Broke alert, hold every checkout ⛔'],
+  };
+  /** Kalimat untuk zona & "benih" (mis. tanggal) — bergantian supaya tidak monoton. lang 'en' = English. */
+  function cashLine(zona, seed, lang) {
+    const lines = lang === 'en' ? CASH_LINES_EN : CASH_LINES;
+    const list = lines[zona] || lines.kuning;
     const n = Math.abs(Math.round(Number(seed) || 0));
     return list[n % list.length];
   }
@@ -392,40 +403,59 @@
     tujuan: ['Gasss! {rp} masuk ke {goal}, maju {hari} lebih dekat 🚀', 'Keren! {goal} makin dekat, {rp} sudah disisihkan 💪'],
   };
 
+  const COMMENTS_EN = {
+    keluar: {
+      hijau: ['Chill, {ket} {rp} logged. Cash is still cool, {goal} is safe 😎', 'Okay boss, {rp} for {ket}. Still up in the clouds ☁️'],
+      kuning: ['{ket} {rp}, noted. Still fine, just don\'t make it a habit, {goal} is waiting 👀', 'Noted {rp}. Slow down the spending, you\'re past halfway 🙂'],
+      oranye: ['{ket} {rp}? Hmm. {goal} just got pushed back {hari}. Ease up, boss ✋', 'Only {kas} cash left. {ket} again? Hold off on the non-essentials 😤'],
+      merah: ['HEY! {ket} {rp}?! Only {kas} cash left, {goal} pushed back {hari}! I\'m fierce because I care 😤🔥', 'STOP the spending! Only {kas} cash left. Survival mode ON, don\'t sacrifice {goal} 🆘'],
+    },
+    target: ['HEY! {ket} {rp}?! Your free money this month is gone, {goal} pushed back {hari}! I\'m fierce because I care 😤🔥',
+      'STOP! This month\'s allowance is gone. {ket} {rp} was {goal}\'s money 😤'],
+    masuk: ['Money in, {rp}! Set some aside for {goal} before you splurge 💸', 'Nice, {rp} came in! {goal} gets its share first, then snacks 😉'],
+    tujuan: ['Gasss! {rp} into {goal}, {hari} closer 🚀', 'Awesome! {goal} is getting closer, {rp} set aside 💪'],
+  };
+
   /**
-   * Kalimat komentar setelah mencatat. c = { saved: [tx], zona, persenKas, goalName, goalWallet, prog, pick }.
+   * Kalimat komentar setelah mencatat. c = { saved: [tx], zona, persenKas, goalName, goalWallet, prog, pick, lang }.
    * pick (0..1) dipakai memilih variasi kalimat; bawaan acak.
    */
   function localComment(c) {
     const saved = c.saved || [];
     const pick = (arr) => arr[Math.min(arr.length - 1, Math.floor((c.pick === undefined ? Math.random() : c.pick) * arr.length))];
     const rp = (n) => 'Rp' + Math.round(n).toLocaleString('id-ID');
-    const goal = c.goalName || 'tabunganmu';
+    const en = c.lang === 'en';
+    const CM = en ? COMMENTS_EN : COMMENTS;
+    const goal = c.goalName || (en ? 'your savings' : 'tabunganmu');
     const keTujuan = saved.filter((t) => t.jenis === 'pindah' && c.goalWallet && t.dompet_tujuan_id === c.goalWallet);
     const keluar = saved.filter((t) => t.jenis === 'keluar' && t.dompet_id !== c.goalWallet);
     const masuk = saved.filter((t) => t.jenis === 'masuk' && t.kategori !== KATEGORI_SALDO_AWAL);
     const sum = (list) => list.reduce((s, t) => s + Number(t.nominal), 0);
-    const hariTxt = (n) => { const d = goalDelayDays(c.prog, n); return d === null ? 'lagi' : daysText(d); };
+    const hariTxt = (n) => { const d = goalDelayDays(c.prog, n); return d === null ? (en ? 'a bit' : 'lagi') : daysText(d, c.lang); };
     let tpl, n, ket = '';
-    if (keTujuan.length) { n = sum(keTujuan); tpl = pick(COMMENTS.tujuan); }
+    if (keTujuan.length) { n = sum(keTujuan); tpl = pick(CM.tujuan); }
     else if (keluar.length) {
       n = sum(keluar);
-      ket = keluar.length === 1 ? (keluar[0].keterangan || keluar[0].kategori) : keluar.length + ' pengeluaran';
-      tpl = pick(c.alasan === 'target' ? COMMENTS.target : COMMENTS.keluar[c.zona || 'kuning']);
-    } else if (masuk.length) { n = sum(masuk); tpl = pick(COMMENTS.masuk); }
+      ket = keluar.length === 1 ? (keluar[0].keterangan || keluar[0].kategori) : keluar.length + (en ? ' expenses' : ' pengeluaran');
+      tpl = pick(c.alasan === 'target' ? CM.target : CM.keluar[c.zona || 'kuning']);
+    } else if (masuk.length) { n = sum(masuk); tpl = pick(CM.masuk); }
     else return '';
     return tpl.replace('{ket}', ket).replace('{rp}', rp(n)).replace('{goal}', goal).replace('{hari}', hariTxt(n))
-      .replace('{kas}', c.persenKas == null ? 'sedikit' : Math.round(c.persenKas * 100) + '%').replace(/^./, (s) => s.toUpperCase());
+      .replace('{kas}', c.persenKas == null ? (en ? 'a little' : 'sedikit') : Math.round(c.persenKas * 100) + '%').replace(/^./, (s) => s.toUpperCase());
   }
 
   /** Isi token {hari} dari jawaban AI dengan jumlah hari tujuan mundur/maju yang dihitung aplikasi. */
-  function fillDays(text, days) {
+  function fillDays(text, days, lang) {
     const s = String(text || '');
-    if (days === null || days === undefined) return s.replace(/\s*\{hari\}\s*(hari)?/g, ' lagi');
-    return s.replace(/\{hari\}(\s*hari)?/g, daysText(days));
+    const en = lang === 'en';
+    if (days === null || days === undefined) return s.replace(en ? /\s*\{hari\}\s*(days?)?/g : /\s*\{hari\}\s*(hari)?/g, en ? ' a bit' : ' lagi');
+    return s.replace(en ? /\{hari\}(\s*days?)?/g : /\{hari\}(\s*hari)?/g, daysText(days, lang));
   }
-  /** "3 hari", "±2 bulan" (di atas 60 hari), atau "sedikit" (di bawah sehari). */
-  function daysText(d) { return d < 1 ? 'sedikit' : d < 60 ? d + ' hari' : '±' + Math.round(d / 30) + ' bulan'; }
+  /** "3 hari", "±2 bulan" (di atas 60 hari), atau "sedikit" (di bawah sehari). lang 'en' = English. */
+  function daysText(d, lang) {
+    if (lang === 'en') return d < 1 ? 'a bit' : d < 60 ? d + (d === 1 ? ' day' : ' days') : '±' + Math.round(d / 30) + ' months';
+    return d < 1 ? 'sedikit' : d < 60 ? d + ' hari' : '±' + Math.round(d / 30) + ' bulan';
+  }
 
   // ---------- Merapikan transaksi & hasil AI ----------
 
@@ -583,28 +613,28 @@
   /** Template tujuan (dipakai tombol template & rencana mode demo). Angka = perkiraan kasar, bisa dikoreksi pengguna. */
   // Urutan penting untuk tebakan: Saving sebelum Sport supaya "sepeda motor" tidak dianggap olahraga.
   const GOAL_TEMPLATES = [
-    { key: 'traveling', label: 'Traveling', emoji: '✈️', contoh: 'Liburan 4 hari ke Bali', bulan: 6,
+    { key: 'traveling', contohEn: '4-day trip to Bali', label: 'Traveling', emoji: '✈️', contoh: 'Liburan 4 hari ke Bali', bulan: 6,
       re: /liburan|libur|trip|jalan-jalan|travel|wisata|bali|jepang|korea|eropa|lombok|honeymoon|backpack|staycation|mudik/,
       rincian: [['Tiket pesawat PP', 3000000], ['Penginapan', 2500000], ['Makan', 1500000], ['Transport lokal', 800000], ['Oleh-oleh & lain-lain', 700000]] },
-    { key: 'gadget', label: 'Gadget', emoji: '📱', contoh: 'Beli HP baru', bulan: 6,
+    { key: 'gadget', contohEn: 'Buy a new phone', label: 'Gadget', emoji: '📱', contoh: 'Beli HP baru', bulan: 6,
       re: /hp|iphone|samsung|laptop|gadget|kamera|ipad|macbook|ps5|konsol|tablet|smartwatch/,
       rincian: [['Harga barang', 8000000], ['Aksesori & pelindung', 500000]] },
-    { key: 'ibadah', label: 'Ibadah', emoji: '🕋', contoh: 'Umrah bareng orang tua', bulan: 18,
+    { key: 'ibadah', contohEn: 'Umrah with my parents', label: 'Ibadah', emoji: '🕋', contoh: 'Umrah bareng orang tua', bulan: 18,
       re: /umrah|umroh|haji|ibadah|qurban|kurban|ziarah|zakat|wakaf|sedekah|aqiqah|akikah/,
       rincian: [['Paket umrah', 32000000], ['Perlengkapan ibadah', 1500000], ['Uang saku', 3000000]] },
-    { key: 'nikah', label: 'Nikah', emoji: '💍', contoh: 'Biaya menikah sederhana', bulan: 18,
+    { key: 'nikah', contohEn: 'A simple wedding', label: 'Nikah', emoji: '💍', contoh: 'Biaya menikah sederhana', bulan: 18,
       re: /nikah|menikah|wedding|lamaran|resepsi|tunangan/,
       rincian: [['Lamaran & seserahan', 10000000], ['Gedung & katering', 40000000], ['Busana & rias', 8000000], ['Dokumentasi', 5000000], ['Undangan & suvenir', 4000000]] },
-    { key: 'saving', label: 'Saving', emoji: '🐷', contoh: 'Tabungan DP motor', bulan: 12,
+    { key: 'saving', contohEn: 'Save for a motorbike down payment', label: 'Saving', emoji: '🐷', contoh: 'Tabungan DP motor', bulan: 12,
       re: /tabung|nabung|saving|motor|mobil|kendaraan|rumah|dp|renovasi|properti/,
       rincian: [['Target tabungan', 10000000]] },
-    { key: 'sport', label: 'Sport', emoji: '🏃', contoh: 'Ikut race lari half marathon', bulan: 8,
+    { key: 'sport', contohEn: 'Run a half marathon race', label: 'Sport', emoji: '🏃', contoh: 'Ikut race lari half marathon', bulan: 8,
       re: /marathon|maraton|lari|race|run|triathlon|gran ?fondo|sepeda|gym|fitness|badminton|futsal|olahraga|sport|hiking|diving|golf/,
       rincian: [['Registrasi', 750000], ['Sepatu & perlengkapan', 1500000], ['Transport', 800000], ['Penginapan 2 malam', 1000000], ['Makan & lain-lain', 500000]] },
-    { key: 'darurat', label: 'Darurat', emoji: '🛡️', contoh: 'Dana darurat 3 bulan biaya hidup', bulan: 12,
+    { key: 'darurat', contohEn: '3-month emergency fund', label: 'Darurat', emoji: '🛡️', contoh: 'Dana darurat 3 bulan biaya hidup', bulan: 12,
       re: /darurat|emergency|jaga-jaga/,
       rincian: [['3 bulan biaya hidup', 15000000]] },
-    { key: 'event', label: 'Event', emoji: '🎉', contoh: 'Nonton konser favorit', bulan: 4,
+    { key: 'event', contohEn: 'See my favorite concert', label: 'Event', emoji: '🎉', contoh: 'Nonton konser favorit', bulan: 4,
       re: /konser|festival|event|nonton|tiket|ulang tahun|ultah|pesta|party|wisuda|acara|gathering/,
       rincian: [['Tiket', 1500000], ['Transport', 500000], ['Penginapan', 800000], ['Lain-lain', 300000]] },
   ];
@@ -688,7 +718,7 @@
       transkrip: String(p.transkrip || '').slice(0, 500) };
   }
 
-  const api = { LEGACY_THEME, normalizeTheme, CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
+  const api = { CASH_LINES_EN, LEGACY_THEME, normalizeTheme, CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
     daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

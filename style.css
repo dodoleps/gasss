@@ -870,3 +870,6 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
   .lg-motes { display: none; }
   .lg-slogan h1 { transition: none; }
 }
+.lang-row { justify-content: space-between; gap: 10px; }
+.lang-row .seg { width: auto; margin: 0; grid-template-columns: repeat(2, auto); }
+.lang-row .seg button { padding: 7px 12px; }
