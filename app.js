@@ -495,7 +495,7 @@
     const p = goalProg(g);
     const st = STATUS[p.status];
     const telat = p.perkiraan && p.perkiraan > g.tenggat && p.status !== 'tercapai';
-    const tema = g.tema || L.guessTheme(g.nama, g.emoji);
+    const tema = g.tema ? L.normalizeTheme(g.tema) : L.guessTheme(g.nama, g.emoji);
     const cps = goalCheckpoints(g);
     const sig = JSON.stringify([g.id, tema, cps, Math.round(p.persenSeharusnya * 200)]);
     const area = $('goal-area');
@@ -923,7 +923,7 @@
       const awalEl = el.querySelector('#gr-awal');
       moneyInput(target);
       if (awalEl) moneyInput(awalEl);
-      let tema = plan.tema || L.guessTheme(plan.nama, plan.emoji);
+      let tema = plan.tema ? L.normalizeTheme(plan.tema) : L.guessTheme(plan.nama, plan.emoji);
       const temaBox = el.querySelector('#gr-tema');
       const drawTema = () => temaBox.querySelectorAll('[data-tema]').forEach((b) => b.classList.toggle('on', b.dataset.tema === tema));
       temaBox.onclick = (e) => { const b = e.target.closest('[data-tema]'); if (b) { tema = b.dataset.tema; drawTema(); } };
@@ -1575,6 +1575,7 @@
     $('login-screen').hidden = false;
     $('btn-login').disabled = false;
     $('login-error').textContent = msg || '';
+    if (window.HBLogin) window.HBLogin.start();
   }
 
   function startLogin() {
@@ -1678,6 +1679,7 @@
       return;
     }
     $('login-screen').hidden = true;
+    if (window.HBLogin) window.HBLogin.stop();
     $('app').hidden = false;
     $('demo-banner').hidden = !DEMO;
     await loadMeta();

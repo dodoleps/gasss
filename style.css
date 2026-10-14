@@ -734,3 +734,139 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .cmp-svg .axis { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
 .cmp-svg text { paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
 .cash-chart .axis { fill: var(--muted); }
+/* Judul DOMPET + tombol tambah kecil */
+.head-title { display: flex; align-items: center; gap: 8px; }
+.add-mini { width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; margin-bottom: 0;
+  background: rgba(255, 255, 255, .9); color: #14201c; box-shadow: var(--shadow); }
+@media (prefers-color-scheme: dark) { .add-mini { background: rgba(0, 0, 0, .35); color: #fff; } }
+:root[data-mood="netral"] .add-mini { background: var(--brand-soft); color: var(--brand); }
+.head-title { margin: 24px 0 10px; }
+.head-title h2 { margin: 0 2px; }
+
+/* ---------- Kartu tujuan: tema baru (Ibadah, Event, Saving) ---------- */
+:root {
+  --sc-night: #2b2453; --sc-dusk: #f2b880; --sc-sand: #f1d39a; --sc-sand-2: #e3bd7c; --sc-sand-edge: #c99a5a; --sc-sand-path: #fbe8c2;
+  --sc-stage: #1b1530; --sc-stage-2: #3b1f4a; --sc-stage-floor: #5b4475; --sc-stage-edge: #2a1f3d; --sc-stage-path: #6d5a8c;
+  --sc-cream: #fff4dc; --sc-cream-2: #ffe7c4; --sc-lid: #c98b2f; --sc-glass: rgba(255, 255, 255, .55); --sc-glass-edge: #c9b28a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sc-night: #120f26; --sc-dusk: #5a3b2a; --sc-sand: #5b4a2c; --sc-sand-2: #4a3c24; --sc-sand-edge: #3a2f1c; --sc-sand-path: #7a6440;
+    --sc-stage: #0d0a18; --sc-stage-2: #22122b; --sc-stage-floor: #3d2e52; --sc-stage-edge: #1a1427; --sc-stage-path: #4a3c62;
+    --sc-cream: #2b2518; --sc-cream-2: #3a2f1c; --sc-lid: #8a6224; --sc-glass: rgba(255, 255, 255, .08); --sc-glass-edge: #6b5d45;
+  }
+}
+.sc-glow { animation: sc-glow 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sc-glow { 50% { filter: drop-shadow(0 0 6px #fff3b0); transform: scale(1.06); } }
+.sc-camel { animation: sc-camel 26s linear infinite; }
+@keyframes sc-camel { from { transform: translateX(-80px); } to { transform: translateX(260px); } }
+.sc-sway { animation: sc-sway 4s ease-in-out infinite alternate; }
+@keyframes sc-sway { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
+.sc-fall { animation: sc-fall linear infinite; }
+@keyframes sc-fall { from { transform: translateY(0) rotate(0); } to { transform: translateY(225px) rotate(540deg); } }
+.sc-coin { animation: sc-coin 2.7s ease-in infinite; opacity: 0; }
+@keyframes sc-coin { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 70% { opacity: 1; } 100% { transform: translateY(96px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sc-glow, .sc-camel, .sc-sway, .sc-fall, .sc-coin { animation: none !important; } .sc-coin { opacity: 0; } }
+
+/* ============ Layar login beranimasi (web/login.js) ============ */
+.lg-screen { position: fixed; inset: 0; z-index: 15; overflow-y: auto; color: #ffffff; background: #035c43; }
+.lg-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none;
+  background: radial-gradient(120% 60% at 0% 0%, rgba(190, 242, 100, .55) 0%, transparent 60%), radial-gradient(90% 50% at 100% 100%, rgba(90, 79, 176, .55) 0%, transparent 70%),
+    linear-gradient(165deg, #16a34a 0%, #035c43 70%); }
+.lg-bg > i { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(50px); opacity: .5;
+  background: radial-gradient(circle, rgba(190, 242, 100, .55), transparent 65%); animation: lg-drift 24s ease-in-out infinite alternate; }
+.lg-bg > i:first-child { left: -30vmax; top: -30vmax; }
+.lg-bg > i:nth-child(2) { right: -35vmax; bottom: -30vmax; background: radial-gradient(circle, rgba(167, 139, 250, .5), transparent 65%); animation-duration: 30s; }
+@keyframes lg-drift { to { transform: translate(14vmax, 10vmax) scale(1.15); } }
+.lg-flow { position: absolute; inset: -10% 0; width: 100%; height: 120%; }
+.lg-flow path { fill: none; stroke-width: 2; stroke-linecap: round; }
+.lg-lane { animation: lg-flow linear infinite; }
+.lg-lane.l1 { animation-duration: 26s; opacity: .35; }
+.lg-lane.l2 { animation-duration: 38s; opacity: .22; animation-name: lg-flow-bob; }
+.lg-lane.l2 path { stroke-width: 3; }
+.lg-lane.l3 { animation-duration: 31s; opacity: .3; }
+.lg-lane.l4 { animation-duration: 46s; opacity: .18; animation-name: lg-flow-bob; }
+.lg-lane.l4 path { stroke-width: 5; }
+.lg-lane.l5 { animation-duration: 54s; opacity: .2; }
+@keyframes lg-flow { to { transform: translateX(-1600px); } }
+@keyframes lg-flow-bob { 50% { transform: translate(-800px, 24px); } 100% { transform: translate(-1600px, 0); } }
+.lg-motes b { position: absolute; bottom: -12px; width: 6px; height: 6px; border-radius: 50%; background: #ecfccb;
+  box-shadow: 0 0 10px 2px rgba(236, 252, 203, .6); opacity: 0; animation: lg-mote linear infinite; }
+.lg-motes b:nth-child(1) { left: 6%; animation-duration: 15s; animation-delay: -2s; }
+.lg-motes b:nth-child(2) { left: 16%; animation-duration: 19s; animation-delay: -9s; width: 4px; height: 4px; }
+.lg-motes b:nth-child(3) { left: 27%; animation-duration: 13s; animation-delay: -5s; }
+.lg-motes b:nth-child(4) { left: 38%; animation-duration: 21s; animation-delay: -14s; width: 3px; height: 3px; }
+.lg-motes b:nth-child(5) { left: 49%; animation-duration: 17s; animation-delay: -1s; }
+.lg-motes b:nth-child(6) { left: 58%; animation-duration: 23s; animation-delay: -11s; width: 4px; height: 4px; }
+.lg-motes b:nth-child(7) { left: 67%; animation-duration: 14s; animation-delay: -7s; }
+.lg-motes b:nth-child(8) { left: 76%; animation-duration: 20s; animation-delay: -3s; width: 3px; height: 3px; }
+.lg-motes b:nth-child(9) { left: 84%; animation-duration: 16s; animation-delay: -12s; }
+.lg-motes b:nth-child(10) { left: 92%; animation-duration: 22s; animation-delay: -6s; width: 4px; height: 4px; }
+.lg-motes b:nth-child(11) { left: 33%; animation-duration: 25s; animation-delay: -18s; width: 3px; height: 3px; background: #ddd6fe; }
+.lg-motes b:nth-child(12) { left: 71%; animation-duration: 18s; animation-delay: -15s; background: #ddd6fe; }
+@keyframes lg-mote { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: .9; } 50% { transform: translate(18px, -50vh); } 88% { opacity: .7; } 100% { transform: translate(-10px, -105vh); opacity: 0; } }
+
+.lg-wrap { position: relative; min-height: 100%; max-width: 440px; margin: 0 auto; box-sizing: border-box; display: grid; grid-template-rows: auto auto 1fr auto; gap: 18px;
+  padding: calc(26px + var(--safe-t)) 22px calc(24px + var(--safe-b)); }
+.lg-brand { display: flex; align-items: center; gap: 12px; }
+.lg-logo { width: 46px; height: 46px; border-radius: 15px; background: #ffffff; color: #16a34a; display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
+.lg-brand b { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.lg-slogan { position: relative; min-height: 96px; }
+.lg-slogan h1 { position: absolute; inset: 0; margin: 0; font-size: 32px; line-height: 1.12; font-weight: 800; letter-spacing: -.03em; text-wrap: balance;
+  opacity: 0; transform: translateY(14px); filter: blur(6px); transition: opacity .7s ease, transform .9s cubic-bezier(.2, .8, .2, 1), filter .7s ease; }
+.lg-slogan h1 span { background: linear-gradient(90deg, #d9f99d, #ffffff 60%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lg-slogan h1.on { opacity: 1; transform: none; filter: none; }
+.lg-stage { position: relative; align-self: center; border-radius: 28px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .3);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); aspect-ratio: 4 / 3; overflow: hidden; }
+.lg-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lg-scene { opacity: 0; transition: opacity .8s ease; }
+.lg-scene.on { opacity: 1; }
+.lg-caption { position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, .8); }
+.lg-dots { display: flex; gap: 6px; }
+.lg-dots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .35); transition: width .4s ease, background .4s ease; }
+.lg-dots i.on { width: 20px; background: #ffffff; }
+.lg-wave rect { transform-box: fill-box; transform-origin: center; }
+.on .lg-wave rect { animation: lg-eq .9s ease-in-out infinite alternate; }
+@keyframes lg-eq { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+.on .lg-ring1, .on .lg-ring2 { animation: lg-ring 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.on .lg-ring2 { animation-delay: .6s; }
+@keyframes lg-ring { from { transform: scale(.8); opacity: .6; } to { transform: scale(1.8); opacity: 0; } }
+.lg-chip { opacity: 0; transform: translateY(10px); transform-box: fill-box; }
+.on .lg-chip { animation: lg-in .6s cubic-bezier(.2, .8, .2, 1) 2.1s forwards; }
+@keyframes lg-in { to { opacity: 1; transform: none; } }
+.lg-draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.on .lg-draw { animation: lg-draw 2.2s cubic-bezier(.6, 0, .2, 1) .2s forwards; }
+@keyframes lg-draw { to { stroke-dashoffset: 0; } }
+.lg-area, .lg-endpt, .lg-tag { opacity: 0; }
+.on .lg-area { animation: lg-fade 1.2s ease 1.1s forwards; }
+.on .lg-endpt { animation: lg-fade .5s ease 2.3s forwards; }
+.on .lg-tag { animation: lg-fade .6s ease 2.5s forwards; }
+@keyframes lg-fade { to { opacity: 1; } }
+.on .lg-halo { animation: lg-halo 1.6s ease-out 2.4s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes lg-halo { from { transform: scale(.6); opacity: .6; } to { transform: scale(2.2); opacity: 0; } }
+.lg-bar { transform-box: fill-box; transform-origin: bottom; transform: scaleY(0); }
+.on .lg-bar { animation: lg-grow 1s cubic-bezier(.2, .8, .2, 1) forwards; }
+@keyframes lg-grow { to { transform: scaleY(1); } }
+.lg-avg { stroke-dasharray: 6 5; opacity: 0; }
+.on .lg-avg { animation: lg-fade .6s ease 1.3s forwards; }
+.lg-prog { stroke-dasharray: 302; stroke-dashoffset: 302; }
+.on .lg-prog { animation: lg-prog 2.4s cubic-bezier(.6, 0, .2, 1) .3s forwards; }
+@keyframes lg-prog { to { stroke-dashoffset: 0; } }
+.lg-trophy { transform-box: fill-box; transform-origin: center; }
+.on .lg-trophy { animation: lg-pop .7s cubic-bezier(.2, 1.6, .4, 1) 2.6s both; }
+@keyframes lg-pop { from { transform: scale(0); } to { transform: scale(1); } }
+.lg-cta { display: grid; gap: 10px; }
+.lg-google { display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 999px; padding: 15px; font-weight: 800; font-size: 16px;
+  background: #ffffff; color: #1e2a27; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+.lg-google:disabled { opacity: .7; }
+.lg-google:focus-visible { outline: 3px solid #d9f99d; outline-offset: 3px; }
+.lg-error { margin: 0; text-align: center; font-size: 13.5px; font-weight: 700; color: #fde68a; }
+.lg-error:empty { display: none; }
+.lg-note { margin: 0; text-align: center; font-size: 12.5px; line-height: 1.5; color: rgba(255, 255, 255, .8); }
+.lg-note a { color: #ffffff; font-weight: 700; }
+/* Tanpa "Kurangi Gerakan": babak grafik tetap tergambar penuh (diam). */
+@media (prefers-reduced-motion: reduce) {
+  .lg-bg > i, .lg-lane, .on .lg-wave rect, .on .lg-ring1, .on .lg-ring2, .on .lg-halo { animation: none !important; }
+  .lg-motes { display: none; }
+  .lg-slogan h1 { transition: none; }
+}

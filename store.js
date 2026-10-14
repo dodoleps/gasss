@@ -102,7 +102,7 @@
     if (!/^\d{4}-\d{2}-\d{2}$/.test(g.tenggat || '') || g.tenggat <= today()) throw new Error('Tenggat harus setelah hari ini');
     const rincian = (Array.isArray(g.rincian) ? g.rincian : []).map((r) => ({ nama: String(r.nama || '').trim().slice(0, 60),
       nominal: Math.round(Number(r.nominal)) || 0 })).filter((r) => r.nama && r.nominal > 0).slice(0, 20);
-    const tema = L.validTheme(g.tema) ? g.tema : L.guessTheme(nama, g.emoji);
+    const tema = L.validTheme(L.normalizeTheme(g.tema)) ? L.normalizeTheme(g.tema) : L.guessTheme(nama, g.emoji);
     return { nama, emoji: Array.from(String(g.emoji || '🎯')).slice(0, 4).join(''), tema, target, tenggat: g.tenggat, rincian,
       catatan: String(g.catatan || '').slice(0, 300) };
   }
@@ -133,7 +133,7 @@
     if (!g || !g.id || !g.nama) return null;
     let rincian = g.rincian;
     if (typeof rincian === 'string') { try { rincian = JSON.parse(rincian || '[]'); } catch (e) { rincian = []; } }
-    return { id: String(g.id), nama: String(g.nama), emoji: String(g.emoji || '🎯'), tema: L.validTheme(g.tema) ? g.tema : L.guessTheme(g.nama, g.emoji), target: Number(g.target) || 0,
+    return { id: String(g.id), nama: String(g.nama), emoji: String(g.emoji || '🎯'), tema: L.validTheme(L.normalizeTheme(g.tema)) ? L.normalizeTheme(g.tema) : L.guessTheme(g.nama, g.emoji), target: Number(g.target) || 0,
       tenggat: String(g.tenggat || ''), mulai: String(g.mulai || today()), awal: Number(g.awal) || 0, dompet_id: String(g.dompet_id || ''),
       rincian: Array.isArray(rincian) ? rincian : [], catatan: String(g.catatan || ''),
       status: ['aktif', 'ide', 'tercapai'].indexOf(g.status) >= 0 ? g.status : 'ide', dibuat: String(g.dibuat || now()), tercapai: String(g.tercapai || '') };

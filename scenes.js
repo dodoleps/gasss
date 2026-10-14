@@ -1,7 +1,7 @@
 /*
  * Ilustrasi bergerak untuk kartu tujuan (SVG + animasi CSS, tanpa pustaka).
- * Setiap tema menggambar adegan 340×210; progres 0..1 menggerakkan "penjalan" di lintasan (race, liburan, nikah,
- * kendaraan, umum) atau mengisi wadah (gadget = baterai, darurat = perisai).
+ * 9 tema, masing-masing adegan 340×210. Progres 0..1 menggerakkan "penjalan" di lintasan (traveling, ibadah, nikah,
+ * sport, event, umum) atau mengisi wadah (gadget = baterai, saving = toples celengan, darurat = perisai).
  * Checkpoint = rincian biaya (kumulatif) + 25/50/75%. Bayangan/garis putus-putus = posisi "seharusnya".
  *
  * HBScenes.mount(svg, { tema, checkpoints: [{ f, nama }], seharusnya }) -> { draw(p, dir), point(f) }
@@ -46,7 +46,7 @@
   // ---------- Tema berbasis lintasan ----------
 
   const PATH_THEMES = {
-    race(svg) {
+    sport(svg) {
       bg(svg, 'var(--sc-grass)');
       el('path', { d: 'M0 160 Q 90 130 170 165 T 340 150 V210 H0Z', fill: 'var(--sc-grass-2)' }, svg);
       emoji(svg, 34, 30, 26, '☀️', 'sc-spin');
@@ -63,7 +63,7 @@
       return { path, done, mover: '🏃', size: 26, faceLeft: true, dy: -15, pin: '🚩' };
     },
 
-    liburan(svg) {
+    traveling(svg) {
       bg(svg, gradient(svg, 'sea' + uid, 'var(--sc-sea)', 'var(--sc-sea-2)'));
       for (let r = 0; r < 4; r++) {
         const row = el('g', { transform: 'translate(0 ' + (70 + r * 38) + ')' }, svg);
@@ -98,20 +98,58 @@
       return { path, done, mover: '💑', size: 26, dy: -14, pin: '🎀' };
     },
 
-    kendaraan(svg) {
-      bg(svg, gradient(svg, 'sky' + uid, 'var(--sc-sky)', 'var(--sc-sky-2)'));
-      drifting(svg, 22, 22, '☁️', 40, 0); drifting(svg, 46, 18, '☁️', 52, 25);
-      [[20, 96, '🏢', 34], [60, 92, '🏬', 30], [116, 98, '🏢', 26], [210, 96, '🏬', 28], [250, 92, '🏢', 34]].forEach(([x, y, c, s]) => emoji(svg, x, y, s, c));
-      el('rect', { x: 0, y: 112, width: 340, height: 98, fill: 'var(--sc-grass)' }, svg);
-      const d = 'M10 176 C 70 176, 90 146, 150 150 S 230 178, 270 150 S 300 122, 318 120';
-      el('path', { d, fill: 'none', stroke: 'var(--sc-road-edge)', 'stroke-width': 24, 'stroke-linecap': 'round' }, svg);
-      const path = el('path', { d, fill: 'none', stroke: 'var(--sc-asphalt)', 'stroke-width': 20, 'stroke-linecap': 'round' }, svg);
-      const done = el('path', { d, fill: 'none', stroke: 'var(--sc-done)', 'stroke-width': 6, 'stroke-linecap': 'round', opacity: 0.9 }, svg);
-      el('path', { d, fill: 'none', stroke: '#ffffff', 'stroke-width': 1.6, class: 'sc-lane', opacity: 0.8 }, svg);
-      emoji(svg, 318, 100, 30, '🏪');
-      emoji(svg, 300, 74, 16, '🔑', 'sc-bounce');
-      emoji(svg, 120, 124, 16, '🚦'); emoji(svg, 36, 140, 16, '🌳'); emoji(svg, 210, 200, 16, '🌳');
-      return { path, done, mover: '🏍️', size: 24, faceLeft: true, dy: -10, pin: '⛽' };
+    ibadah(svg) {
+      bg(svg, gradient(svg, 'dusk' + uid, 'var(--sc-night)', 'var(--sc-dusk)'));
+      for (let i = 0; i < 12; i++) {
+        const st = el('circle', { cx: 14 + (i * 53) % 320, cy: 10 + (i * 29) % 70, r: 1 + (i % 3) * 0.6, fill: '#fff8e1', class: 'sc-twinkle' }, svg);
+        st.style.animationDelay = (i % 5) * 0.35 + 's';
+      }
+      emoji(svg, 40, 32, 26, '🌙', 'sc-glow');
+      drifting(svg, 52, 18, '☁️', 60, 30);
+      el('path', { d: 'M-10 150 Q 70 112 150 140 T 350 126 V210 H-10Z', fill: 'var(--sc-sand-2)' }, svg);
+      el('path', { d: 'M-10 176 Q 90 150 190 176 T 350 160 V210 H-10Z', fill: 'var(--sc-sand)' }, svg);
+      emoji(svg, 270, 112, 26, '🕌');
+      const camel = el('g', { class: 'sc-camel' }, svg); emoji(camel, 60, 150, 18, '🐪');
+      const d = 'M20 192 C 80 196, 100 162, 150 168 S 220 190, 256 160 S 286 112, 312 104';
+      el('path', { d, fill: 'none', stroke: 'var(--sc-sand-edge)', 'stroke-width': 14, 'stroke-linecap': 'round' }, svg);
+      const path = el('path', { d, fill: 'none', stroke: 'var(--sc-sand-path)', 'stroke-width': 10, 'stroke-linecap': 'round' }, svg);
+      const done = el('path', { d, fill: 'none', stroke: 'var(--sc-done)', 'stroke-width': 10, 'stroke-linecap': 'round', opacity: 0.85 }, svg);
+      el('path', { d, fill: 'none', stroke: '#fff8e1', 'stroke-width': 1.6, 'stroke-dasharray': '1 6', 'stroke-linecap': 'round', class: 'sc-lane', opacity: 0.8 }, svg);
+      emoji(svg, 316, 88, 26, '🕋');
+      [[300, 70], [332, 74]].forEach(([x, y], i) => emoji(svg, x, y, 12, '✨', 'sc-twinkle', i * 0.6));
+      return { path, done, mover: '🚶', size: 22, faceLeft: true, dy: -11, pin: '📿' };
+    },
+
+    event(svg) {
+      bg(svg, gradient(svg, 'stage' + uid, 'var(--sc-stage)', 'var(--sc-stage-2)'));
+      // lampu sorot berayun
+      const defs = el('defs', {}, svg);
+      const lg = el('linearGradient', { id: 'beam' + uid, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+      el('stop', { offset: 0, 'stop-color': '#fff6c2', 'stop-opacity': 0.55 }, lg);
+      el('stop', { offset: 1, 'stop-color': '#fff6c2', 'stop-opacity': 0 }, lg);
+      [[250, 0, 0], [310, 0, 0.8], [190, 0, 1.6]].forEach(([x, , delay]) => {
+        const b = el('polygon', { points: x + ',0 ' + (x - 40) + ',200 ' + (x + 40) + ',200', fill: 'url(#beam' + uid + ')', class: 'sc-sway' }, svg);
+        b.style.transformOrigin = x + 'px 0px';
+        b.style.animationDelay = delay + 's';
+      });
+      // panggung
+      el('rect', { x: 236, y: 58, width: 104, height: 12, rx: 3, fill: 'var(--sc-stage-floor)' }, svg);
+      emoji(svg, 266, 44, 20, '🎤'); emoji(svg, 298, 42, 22, '🎸', 'sc-cheer'); emoji(svg, 326, 46, 18, '🥁');
+      // konfeti jatuh
+      const cols = ['#f472b6', '#facc15', '#38bdf8', '#a78bfa', '#4ade80', '#fb923c'];
+      for (let i = 0; i < 18; i++) {
+        const c = el('rect', { x: 8 + (i * 37) % 330, y: -8, width: 3, height: 5, rx: 1, fill: cols[i % cols.length], class: 'sc-fall' }, svg);
+        c.style.animationDuration = 3 + (i % 5) * 0.7 + 's';
+        c.style.animationDelay = -(i * 0.45) + 's';
+      }
+      // penonton
+      [[24, 200], [70, 204], [120, 200], [170, 204]].forEach(([x, y], i) => emoji(svg, x, y, 16, i % 2 ? '🙌' : '🎉', 'sc-cheer', i * 0.2));
+      const d = 'M18 176 L 80 150 L 60 120 L 140 112 L 120 86 L 210 80 L 248 64';
+      el('path', { d, fill: 'none', stroke: 'var(--sc-stage-edge)', 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg);
+      const path = el('path', { d, fill: 'none', stroke: 'var(--sc-stage-path)', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg);
+      const done = el('path', { d, fill: 'none', stroke: 'var(--sc-done)', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg);
+      el('path', { d, fill: 'none', stroke: '#ffffff', 'stroke-width': 1.5, class: 'sc-lane', opacity: 0.6 }, svg);
+      return { path, done, mover: '🕺', size: 22, dy: -11, pin: '🎫' };
     },
 
     umum(svg) {
@@ -189,6 +227,21 @@
       el('rect', { x: B.x, y: B.y, width: B.w, height: B.h, rx: 12, fill: 'var(--sc-cell)', stroke: 'var(--sc-road-edge)', 'stroke-width': 2 }, svg);
       shape = (p) => el('rect', { x: B.x + 3, y: B.y + 3, width: B.w - 6, height: B.h - 6, rx: 9 }, p);
       deco = '⚡';
+    } else if (kind === 'saving') {
+      bg(svg, gradient(svg, 'cream' + uid, 'var(--sc-cream)', 'var(--sc-cream-2)'));
+      [[48, 40], [292, 52], [60, 160], [284, 170]].forEach(([x, y], i) => emoji(svg, x, y, 14, '✨', 'sc-twinkle', i * 0.4));
+      const d = 'M138 30 H202 V44 C226 52 236 70 236 96 V170 C236 186 224 196 208 196 H132 C116 196 104 186 104 170 V96 C104 70 114 52 138 44 Z';
+      el('rect', { x: 132, y: 16, width: 76, height: 14, rx: 5, fill: 'var(--sc-lid)' }, svg);
+      el('path', { d, fill: 'var(--sc-glass)', stroke: 'var(--sc-glass-edge)', 'stroke-width': 3, 'stroke-linejoin': 'round' }, svg);
+      B = { x: 104, y: 30, w: 132, h: 166, top: 48, bottom: 192 };
+      shape = (p) => el('path', { d }, p);
+      deco = '🐷';
+      // koin berjatuhan ke dalam toples
+      for (let i = 0; i < 3; i++) {
+        const c = el('g', { class: 'sc-coin' }, svg);
+        c.style.animationDelay = i * 0.9 + 's';
+        emoji(c, 150 + i * 20, 6, 14, '🪙');
+      }
     } else {
       bg(svg, gradient(svg, 'storm' + uid, 'var(--sc-storm)', 'var(--sc-storm-2)'));
       emoji(svg, 50, 26, 30, '🌧️'); emoji(svg, 290, 30, 28, '🌧️');
@@ -217,8 +270,9 @@
       c.style.animationDuration = 2.2 + (i % 4) * 0.6 + 's';
       c.style.animationDelay = i * 0.45 + 's';
     }
+    if (kind === 'saving') el('path', { d: 'M116 100 C116 80 122 66 134 58', fill: 'none', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0.6 }, svg);
     const cx = B.x + B.w / 2, midY = (B.top + B.bottom) / 2;
-    const icon = emoji(svg, cx, midY - 10, 28, deco, 'sc-zap');
+    const icon = emoji(svg, cx, midY - 10, 28, deco, kind === 'saving' ? 'sc-bob' : 'sc-zap');
     const pct = label(svg, cx, midY + 22, '0%', { size: 15, fill: 'var(--sc-ink)' });
     const yOf = (f) => B.bottom - (B.bottom - B.top) * f;
     const leftX = B.x - (kind === 'gadget' ? 9 : 6), rightX = B.x + B.w + (kind === 'gadget' ? 14 : 10);
@@ -252,13 +306,17 @@
     };
   }
 
+  /** Kunci tema lama -> tema baru (tujuan yang sudah tersimpan). */
+  const LEGACY = { race: 'sport', liburan: 'traveling', kendaraan: 'saving' };
+  const FILL = { gadget: 1, darurat: 1, saving: 1 };
+
   function mount(svg, opts) {
     uid++;
     while (svg.firstChild) svg.removeChild(svg.firstChild);
-    const tema = opts.tema;
+    const tema = LEGACY[opts.tema] || opts.tema;
     const cps = opts.checkpoints || [];
     const s = Math.max(0, Math.min(1, opts.seharusnya || 0));
-    if (tema === 'gadget' || tema === 'darurat') return mountFill(svg, tema, cps, s);
+    if (FILL[tema]) return mountFill(svg, tema, cps, s);
     const build = PATH_THEMES[tema] || PATH_THEMES.umum;
     return mountPath(svg, build(svg), cps, s);
   }
@@ -308,5 +366,5 @@
     return { x: r.x, y: r.y };
   }
 
-  root.HBScenes = { mount, burst, toScreen };
+  root.HBScenes = { mount, burst, toScreen, LEGACY };
 })(this);

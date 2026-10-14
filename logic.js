@@ -581,25 +581,32 @@
 
   const BULAN = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
   /** Template tujuan (dipakai tombol template & rencana mode demo). Angka = perkiraan kasar, bisa dikoreksi pengguna. */
+  // Urutan penting untuk tebakan: Saving sebelum Sport supaya "sepeda motor" tidak dianggap olahraga.
   const GOAL_TEMPLATES = [
-    { key: 'race', label: 'Event / race', emoji: '🏃', contoh: 'Ikut race lari half marathon', bulan: 8,
-      re: /marathon|maraton|lari|race|run\b|triathlon|gran ?fondo|konser|festival|event/,
-      rincian: [['Registrasi', 750000], ['Sepatu & perlengkapan', 1500000], ['Transport', 800000], ['Penginapan 2 malam', 1000000], ['Makan & lain-lain', 500000]] },
-    { key: 'liburan', label: 'Liburan', emoji: '🏖️', contoh: 'Liburan 4 hari ke Bali', bulan: 6,
-      re: /liburan|libur|trip|jalan-jalan|travel|wisata|bali|jepang|lombok|honeymoon/,
+    { key: 'traveling', label: 'Traveling', emoji: '✈️', contoh: 'Liburan 4 hari ke Bali', bulan: 6,
+      re: /liburan|libur|trip|jalan-jalan|travel|wisata|bali|jepang|korea|eropa|lombok|honeymoon|backpack|staycation|mudik/,
       rincian: [['Tiket pesawat PP', 3000000], ['Penginapan', 2500000], ['Makan', 1500000], ['Transport lokal', 800000], ['Oleh-oleh & lain-lain', 700000]] },
     { key: 'gadget', label: 'Gadget', emoji: '📱', contoh: 'Beli HP baru', bulan: 6,
-      re: /\bhp\b|iphone|samsung|laptop|gadget|kamera|ipad|macbook|ps5|konsol|tablet/,
+      re: /hp|iphone|samsung|laptop|gadget|kamera|ipad|macbook|ps5|konsol|tablet|smartwatch/,
       rincian: [['Harga barang', 8000000], ['Aksesori & pelindung', 500000]] },
-    { key: 'darurat', label: 'Dana darurat', emoji: '🛟', contoh: 'Dana darurat 3 bulan biaya hidup', bulan: 12,
+    { key: 'ibadah', label: 'Ibadah', emoji: '🕋', contoh: 'Umrah bareng orang tua', bulan: 18,
+      re: /umrah|umroh|haji|ibadah|qurban|kurban|ziarah|zakat|wakaf|sedekah|aqiqah|akikah/,
+      rincian: [['Paket umrah', 32000000], ['Perlengkapan ibadah', 1500000], ['Uang saku', 3000000]] },
+    { key: 'nikah', label: 'Nikah', emoji: '💍', contoh: 'Biaya menikah sederhana', bulan: 18,
+      re: /nikah|menikah|wedding|lamaran|resepsi|tunangan/,
+      rincian: [['Lamaran & seserahan', 10000000], ['Gedung & katering', 40000000], ['Busana & rias', 8000000], ['Dokumentasi', 5000000], ['Undangan & suvenir', 4000000]] },
+    { key: 'saving', label: 'Saving', emoji: '🐷', contoh: 'Tabungan DP motor', bulan: 12,
+      re: /tabung|nabung|saving|motor|mobil|kendaraan|rumah|dp|renovasi|properti/,
+      rincian: [['Target tabungan', 10000000]] },
+    { key: 'sport', label: 'Sport', emoji: '🏃', contoh: 'Ikut race lari half marathon', bulan: 8,
+      re: /marathon|maraton|lari|race|run|triathlon|gran ?fondo|sepeda|gym|fitness|badminton|futsal|olahraga|sport|hiking|diving|golf/,
+      rincian: [['Registrasi', 750000], ['Sepatu & perlengkapan', 1500000], ['Transport', 800000], ['Penginapan 2 malam', 1000000], ['Makan & lain-lain', 500000]] },
+    { key: 'darurat', label: 'Darurat', emoji: '🛡️', contoh: 'Dana darurat 3 bulan biaya hidup', bulan: 12,
       re: /darurat|emergency|jaga-jaga/,
       rincian: [['3 bulan biaya hidup', 15000000]] },
-    { key: 'nikah', label: 'Nikah', emoji: '💍', contoh: 'Biaya menikah sederhana', bulan: 18,
-      re: /nikah|menikah|wedding|lamaran|resepsi/,
-      rincian: [['Lamaran & seserahan', 10000000], ['Gedung & katering', 40000000], ['Busana & rias', 8000000], ['Dokumentasi', 5000000], ['Undangan & suvenir', 4000000]] },
-    { key: 'kendaraan', label: 'Kendaraan', emoji: '🏍️', contoh: 'Beli motor baru tunai', bulan: 12,
-      re: /motor|mobil|sepeda|kendaraan/,
-      rincian: [['Harga kendaraan', 20000000], ['Surat-surat & asuransi', 1500000], ['Helm & aksesori', 700000]] },
+    { key: 'event', label: 'Event', emoji: '🎉', contoh: 'Nonton konser favorit', bulan: 4,
+      re: /konser|festival|event|nonton|tiket|ulang tahun|ultah|pesta|party|wisuda|acara|gathering/,
+      rincian: [['Tiket', 1500000], ['Transport', 500000], ['Penginapan', 800000], ['Lain-lain', 300000]] },
   ];
 
   /** Cari "Juni 2027" / "juni" / "6/2027" di teks. Hasil tanggal 1 bulan itu (YYYY-MM-DD) atau null. */
@@ -613,18 +620,24 @@
     return y + '-' + String(idx + 1).padStart(2, '0') + '-01';
   }
 
-  /** Tema ilustrasi kartu tujuan. Kunci sama dengan template; "umum" untuk tujuan lainnya. */
+  /** Tema ilustrasi kartu tujuan (9). Kunci sama dengan template; "umum" untuk tujuan lainnya. */
   const THEMES = [
-    { key: 'race', label: 'Lintasan lari', emoji: '🏃' },
-    { key: 'liburan', label: 'Rute pesawat', emoji: '✈️' },
-    { key: 'gadget', label: 'Baterai terisi', emoji: '🔋' },
-    { key: 'darurat', label: 'Perisai', emoji: '🛡️' },
-    { key: 'nikah', label: 'Jalan ke pelaminan', emoji: '💒' },
-    { key: 'kendaraan', label: 'Jalan ke dealer', emoji: '🏍️' },
-    { key: 'umum', label: 'Mendaki gunung', emoji: '⛰️' },
+    { key: 'traveling', label: 'Traveling', emoji: '✈️' },
+    { key: 'gadget', label: 'Gadget', emoji: '🔋' },
+    { key: 'ibadah', label: 'Ibadah', emoji: '🕋' },
+    { key: 'nikah', label: 'Nikah', emoji: '💒' },
+    { key: 'saving', label: 'Saving', emoji: '🐷' },
+    { key: 'sport', label: 'Sport', emoji: '🏃' },
+    { key: 'darurat', label: 'Darurat', emoji: '🛡️' },
+    { key: 'event', label: 'Event', emoji: '🎉' },
+    { key: 'umum', label: 'Umum', emoji: '⛰️' },
   ];
-  const THEME_EMOJI = { race: /🏃|🏁|🎽|👟|🚴|🏊|🎤|🎫/u, liburan: /✈️|🏖️|🏝️|🧳|🗺️|🌴/u, gadget: /📱|💻|📷|🎮|⌚|🎧|🖥️/u,
-    darurat: /🛟|🛡️|🚑|☔/u, nikah: /💍|💒|👰|🤵|💐/u, kendaraan: /🏍️|🚗|🛵|🚙|🚲|🚘/u };
+  /** Kunci tema versi lama -> tema baru (tujuan yang sudah tersimpan di HP / cadangan). */
+  const LEGACY_THEME = { race: 'sport', liburan: 'traveling', kendaraan: 'saving' };
+  const normalizeTheme = (k) => LEGACY_THEME[k] || k;
+  const THEME_EMOJI = { traveling: /✈️|🏖️|🏝️|🧳|🗺️|🌴/u, gadget: /📱|💻|📷|🎮|⌚|🎧|🖥️/u, ibadah: /🕋|🕌|📿|🤲/u,
+    nikah: /💍|💒|👰|🤵|💐/u, saving: /🐷|💰|🏠|🏍️|🚗|🛵|🚙|🚘/u, sport: /🏃|🏁|🎽|👟|🚴|🏊|⚽|🏸/u, darurat: /🛟|🛡️|🚑|☔/u,
+    event: /🎉|🎤|🎫|🎸|🎂|🎓/u };
   /** Tebak tema dari teks (nama/cerita) lalu emoji. Hasil salah satu kunci THEMES. */
   function guessTheme(text, emoji) {
     const s = String(text || '').toLowerCase();
@@ -669,13 +682,13 @@
     }
     const emoji = Array.from(String(p.emoji || '').trim()).slice(0, 4).join('') || '🎯';
     const nama = String(p.nama || '').trim().slice(0, 60) || 'Tujuanku';
-    const tema = validTheme(p.tema) ? p.tema : guessTheme(nama + ' ' + (p.transkrip || ''), emoji);
+    const tema = validTheme(normalizeTheme(p.tema)) ? normalizeTheme(p.tema) : guessTheme(nama + ' ' + (p.transkrip || ''), emoji);
     return { nama, emoji, tema, tenggat, rincian,
       target: sum || Math.max(0, Math.round(Number(p.target)) || 0), catatan: String(p.catatan || '').slice(0, 300),
       transkrip: String(p.transkrip || '').slice(0, 500) };
   }
 
-  const api = { CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
+  const api = { LEGACY_THEME, normalizeTheme, CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
     daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
