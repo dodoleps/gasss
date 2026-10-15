@@ -91,6 +91,27 @@
   }
 
   /**
+   * Rincian uang masuk / keluar satu bulan (untuk Laporan).
+   * Masuk tidak menghitung "Saldo awal" (sama seperti monthSummary). Pindah dana tidak termasuk.
+   * items: terbaru dulu; perKategori: terbesar dulu.
+   */
+  function monthFlow(txs, bulan, jenis) {
+    const items = sortTx(txs.filter((t) => t.jenis === jenis && monthOf(t.tanggal) === bulan &&
+      !(jenis === 'masuk' && t.kategori === KATEGORI_SALDO_AWAL))).reverse();
+    const sums = {}, counts = {};
+    let total = 0;
+    items.forEach((t) => {
+      const n = Number(t.nominal);
+      sums[t.kategori] = (sums[t.kategori] || 0) + n;
+      counts[t.kategori] = (counts[t.kategori] || 0) + 1;
+      total += n;
+    });
+    const perKategori = Object.keys(sums).map((k) => ({ kategori: k, total: sums[k], jumlah: counts[k], persen: total ? sums[k] / total : 0 }));
+    perKategori.sort((a, b) => b.total - a.total);
+    return { jenis, bulan, total, jumlah: items.length, perKategori, items };
+  }
+
+  /**
    * Posisi kas harian dalam satu bulan.
    * persen = saldo semua dompet di akhir hari ÷ uang tersedia bulan itu
    * (saldo awal bulan + pemasukan bulan itu sampai hari tersebut). Pindah antar dompet tidak berpengaruh.
@@ -721,7 +742,7 @@
       transkrip: String(p.transkrip || '').slice(0, 500) };
   }
 
-  const api = { CASH_LINES_EN, LEGACY_THEME, normalizeTheme, CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
+  const api = { CASH_LINES_EN, LEGACY_THEME, normalizeTheme, CASH_LINES, cashLine, KONSUMTIF, DOMPET_KATEGORI, walletForCategory, dailyAllowance, GOAL_TEMPLATES, THEMES, guessTheme, validTheme, UTAMA_ID, KATEGORI_PINDAH, KATEGORI_SALDO_AWAL, computeWallets, monthSummary, monthFlow, monthAchievement, openingBalances, categoryReport, cashPosition, cashZone, CASH_LEVELS,
     cleanTx, mapAiResult, compareMonths, shiftMonth, parseDemo, parseAmount, sortTx, monthOf,
     cleanEmoji, daysBetween, addDays, walletBalance, goalProgress, goalDelayDays, safeDaily, currentZone, moodZone, localComment, fillDays, planDemo, cleanPlan };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

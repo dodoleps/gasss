@@ -159,9 +159,13 @@
     if (S.tab === 'settings') renderSettings(cw);
   }
 
-  function statsHtml(sum) {
-    return '<div class="stat"><div class="stat-label">Masuk</div><div class="stat-value c-in">' + rp(sum.masuk) + '</div></div>' +
-      '<div class="stat"><div class="stat-label">Keluar</div><div class="stat-value c-out">' + rp(sum.keluar) + '</div></div>' +
+  /** tap = kartu Masuk/Keluar bisa diketuk untuk membuka rinciannya (halaman Laporan). */
+  function statsHtml(sum, tap) {
+    const card = (jenis, label, val, cls) => tap
+      ? '<button class="stat stat-tap" data-flow="' + jenis + '"><div class="stat-label">' + label + ' <span class="stat-more">Rincian ›</span></div>' +
+        '<div class="stat-value ' + cls + '">' + rp(val) + '</div></button>'
+      : '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value ' + cls + '">' + rp(val) + '</div></div>';
+    return card('masuk', 'Masuk', sum.masuk, 'c-in') + card('keluar', 'Keluar', sum.keluar, 'c-out') +
       '<div class="stat"><div class="stat-label">Selisih</div><div class="stat-value">' + rp(sum.selisih) + '</div></div>';
   }
 
@@ -356,7 +360,7 @@
   function renderReport() {
     const m = S.reportMonth;
     $('r-month').textContent = fmtMonth(m);
-    $('r-summary').innerHTML = statsHtml(L.monthSummary(S.transactions, m));
+    $('r-summary').innerHTML = statsHtml(L.monthSummary(S.transactions, m), true);
     $('btn-share-hemat').hidden = !(m < thisMonth() && L.monthAchievement(S.transactions, m));
     renderCash();
     renderCompare();
@@ -367,6 +371,35 @@
       '<div class="bar"><i style="width:' + Math.round(r.persen * 100) + '%"></i></div>' +
       '<div class="cat-pct">' + Math.round(r.persen * 100) + '% dari total pengeluaran</div></button>').join('')
       : '<div class="empty">Belum ada pengeluaran di bulan ini.</div>';
+  }
+
+  /** Lembar rincian Uang masuk / Uang keluar untuk bulan yang sedang dilihat di Laporan. */
+  function openMonthFlow(jenis) {
+    const m = S.reportMonth;
+    const f = L.monthFlow(S.transactions, m, jenis);
+    const masuk = jenis === 'masuk';
+    const sign = masuk ? '+' : '-', cls = masuk ? 'c-in' : 'c-out';
+    let list = '', day = '';
+    f.items.forEach((t) => {
+      if (t.tanggal !== day) {
+        day = t.tanggal;
+        const tot = f.items.filter((x) => x.tanggal === day).reduce((a, x) => a + Number(x.nominal), 0);
+        list += '<div class="day-head"><span>' + fmtDay(day) + '</span><span>' + sign + rp(tot) + '</span></div>';
+      }
+      list += txHtml(t);
+    });
+    openSheet('<h3>' + (masuk ? '💰 Uang masuk' : '💸 Uang keluar') + '</h3>' +
+      '<div class="flow-month">' + fmtMonth(m) + '</div>' +
+      (f.jumlah ? '<div class="flow-total ' + (masuk ? 'flow-in' : 'flow-out') + '"><span>Total</span><b class="' + cls + '">' + sign + rp(f.total) + '</b>' +
+        '<small>' + f.jumlah + ' transaksi</small></div>' +
+        '<div class="flow-cats">' + f.perKategori.map((r) =>
+          '<div class="flow-cat"><span>' + (ICON[r.kategori] || (masuk ? '💰' : '💸')) + ' ' + esc(r.kategori) + '</span>' +
+          '<span class="flow-cat-amt">' + rp(r.total) + ' <small>' + Math.round(r.persen * 100) + '%</small></span></div>').join('') + '</div>' +
+        '<div class="flow-list">' + list + '</div>'
+        : '<div class="empty">' + (masuk ? 'Belum ada uang masuk di bulan ini.' : 'Belum ada uang keluar di bulan ini.') + '</div>') +
+      '<div class="btn-row"><button class="btn" id="flow-close">Tutup</button></div>', (el) => {
+      el.querySelector('#flow-close').onclick = closeSheet;
+    });
   }
 
   function renderSettings(cw) {
@@ -2486,6 +2519,8 @@
     document.body.addEventListener('click', (e) => {
       const txBtn = e.target.closest('[data-tx]');
       if (txBtn) { const t = S.transactions.find((x) => x.id === txBtn.dataset.tx); if (t) openTxForm(t); return; }
+      const flowBtn = e.target.closest('[data-flow]');
+      if (flowBtn) { openMonthFlow(flowBtn.dataset.flow); return; }
       if (e.target.closest('[data-goal-new]')) { openGoalCreate({}); return; }
       if (e.target.closest('[data-goal-open]')) { openGoalDetail(); return; }
       if (e.target.closest('[data-goal-ideas]')) { openGoalIdeas(); return; }

@@ -179,6 +179,8 @@ HBI18n.add({
   'Grafik posisi kas {m}, terakhir {p}': 'Cash position chart {m}, latest {p}',
   'Saldo {a} · keluar {b}': 'Balance {a} · out {b}', 'Saldo {a} · keluar {b} · masuk {c}': 'Balance {a} · out {b} · in {c}',
   '{p}% dari total pengeluaran': '{p}% of total spending', 'Belum ada pengeluaran di bulan ini.': 'No spending this month yet.',
+  'Rincian ›': 'Details ›', '💰 Uang masuk': '💰 Money in', '💸 Uang keluar': '💸 Money out', '{n} transaksi': '{n} transactions',
+  'Belum ada uang masuk di bulan ini.': 'No money in this month yet.', 'Belum ada uang keluar di bulan ini.': 'No money out this month yet.',
   'Belum ada pengeluaran untuk dibandingkan.': 'No spending to compare yet.', 'Belum ada data pengeluaran di bulan-bulan sebelumnya.': 'No spending data in previous months yet.',
   '⚖️ Pengeluaran {m} kurang lebih sama dengan rata-rata sebelumnya.': '⚖️ Spending in {m} is about the same as the previous average.',
   '🎉 Lebih hemat': '🎉 Spent', '🔥 Lebih boros': '🔥 Spent', '({x}) dibanding rata-rata {n} bulan sebelumnya.': 'less ({x}) than the average of the previous {n} months.',

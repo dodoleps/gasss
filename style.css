@@ -149,6 +149,24 @@ main { padding: 0 16px; }
 .stat:nth-child(3) { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; padding: 10px 16px; }
 .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; }
 .stat-value { font-weight: 800; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-tap { border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; }
+.stat-tap:active { transform: scale(.97); }
+.stat-tap .stat-label { display: flex; justify-content: space-between; gap: 6px; }
+.stat-more { font-size: 11px; font-weight: 700; opacity: .8; white-space: nowrap; }
+/* Lembar rincian uang masuk / keluar (Laporan) */
+.flow-month { color: var(--muted); font-weight: 600; margin: -10px 0 12px; }
+.flow-total { border-radius: 18px; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.flow-total.flow-in { background: var(--in-bg); }
+.flow-total.flow-out { background: var(--out-bg); }
+.flow-total span { font-weight: 600; color: var(--muted); font-size: 13px; }
+.flow-total b { font-size: 20px; font-weight: 800; flex: 1; text-align: right; }
+.flow-total small { width: 100%; text-align: right; color: var(--muted); }
+.flow-cats { background: var(--card); border-radius: 18px; margin-top: 10px; box-shadow: var(--shadow); }
+.flow-cat { display: flex; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+.flow-cat:last-child { border-bottom: 0; }
+.flow-cat-amt { white-space: nowrap; font-weight: 800; }
+.flow-cat-amt small { color: var(--muted); font-weight: 600; margin-left: 4px; }
+.flow-list { margin-top: 4px; }
 .c-in { color: var(--in); } .c-out { color: var(--out); } .c-move { color: var(--move); }
 
 /* ---------- Kartu dompet ---------- */
